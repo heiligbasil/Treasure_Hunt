@@ -5,22 +5,22 @@ import retrofit2.Call
 import retrofit2.http.GET
 
 interface BcMineInterface {
-    @GET("/bc/mine/")
+    @GET("bc/mine/")
     fun getMove(): Call<Proof>
 }
 
 interface BcTotalsInterface {
-    @GET("/bc/totals/")
+    @GET("bc/totals/")
     fun getMove(): Call<Proof>
 }
 
 interface BcLastProofInterface {
-    @GET("/bc/last_proof/")
+    @GET("bc/last_proof/")
     fun getMove(): Call<Proof>
 }
 
 interface BcGetBalanceInterface {
-    @GET("/bc/get_balance/")
+    @GET("bc/get_balance/")
     fun getMove(): Call<Proof>
 }
 
