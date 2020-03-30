@@ -1,9 +1,10 @@
 package com.lambdaschool.cs_build_week_2
 
-import androidx.appcompat.app.AppCompatActivity
+import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.lambdaschool.cs_build_week_2.api.AdvInitInterface
 import com.lambdaschool.cs_build_week_2.models.CellDetails
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
@@ -56,7 +57,9 @@ class MainActivity : AppCompatActivity() {
                         val roomId: Int? = responseBody?.roomId
                         if (roomsGraph[roomId].isNullOrEmpty())
                             roomsGraph[roomId] = arrayOfRoomAndCellDetails
-                        roomsGraph[roomId]?.add(roomDetails)
+                        roomsGraph[roomId]?.set(0, responseBody)
+//                        roomsGraph[roomId]?.set(1,validateRoomConnections(roomId))
+                        roomsGraph[roomId]?.set(2, fillCellDetails(roomId))
 
                         return
                     } else {
@@ -74,12 +77,24 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    val roomDetails:HashMap<String?, Any?> = hashMapOf(Pair("Details",RoomDetails()))
-    val roomConnections: HashMap<String?, Any?> = hashMapOf(Pair("Connections",hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))))
-    val cellDetails: HashMap<String?, Any?> = hashMapOf(Pair("Cell", CellDetails()))
-    val arrayOfRoomAndCellDetails = arrayListOf<HashMap<String?, Any?>>(roomDetails,roomConnections,cellDetails)
+    private fun validateRoomConnections(roomId: Int?): HashMap<String, Int?> {
+        TODO("Not yet implemented")
+    }
+
+    private fun fillCellDetails(roomId: Int?): CellDetails {
+        val extractedRoomDetails: RoomDetails = roomsGraph[roomId]?.get(0) as RoomDetails
+        val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
+        val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
+        // TODO: Change cell color depending on condition
+        return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), Color.BLUE)
+    }
+
+    val roomDetails = RoomDetails()
+    val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
+    val cellDetails = CellDetails()
+    val arrayOfRoomAndCellDetails: ArrayList<Any?> = arrayListOf(roomDetails, roomConnections, cellDetails)
 
     companion object {
-        val roomsGraph = HashMap<Int?, ArrayList<HashMap<String?, Any?>>>()
+        val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
     }
 }
