@@ -3,7 +3,7 @@ package com.lambdaschool.cs_build_week_2.models
 import com.google.gson.annotations.Expose
 import com.google.gson.annotations.SerializedName
 
-class Room {
+class RoomDetails {
     @SerializedName("room_id")
     @Expose
     var roomId: Int? = null
