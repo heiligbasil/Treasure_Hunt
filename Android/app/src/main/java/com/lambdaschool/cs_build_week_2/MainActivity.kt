@@ -1,10 +1,15 @@
 package com.lambdaschool.cs_build_week_2
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 import com.lambdaschool.cs_build_week_2.api.AdvInitInterface
 import com.lambdaschool.cs_build_week_2.models.CellDetails
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
@@ -15,6 +20,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.lang.reflect.Type
 
 class MainActivity : AppCompatActivity() {
 
@@ -60,6 +66,8 @@ class MainActivity : AppCompatActivity() {
                         roomsGraph[roomId]?.set(0, responseBody)
                         roomsGraph[roomId]?.set(1, validateRoomConnections(roomId))
                         roomsGraph[roomId]?.set(2, fillCellDetails(roomId))
+                        saveState()
+                        loadState()
                     } else {
                         val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
                             ?.substringBefore("Django Version:")}"
@@ -93,6 +101,48 @@ class MainActivity : AppCompatActivity() {
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
         // TODO: Change cell color depending on condition
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), Color.BLUE)
+    }
+
+    private fun saveState() {
+        val preferences: SharedPreferences = applicationContext.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
+        val gson: Gson = GsonBuilder().serializeNulls().create()
+        roomsGraph.forEach {
+            val arrayList: ArrayList<Any?> = roomsGraph[it.key] ?: arrayListOf()
+            val roomDetailsToJson: String = gson.toJson(arrayList[0])
+            val roomConnectionsToJson: String = gson.toJson(arrayList[1])
+            val cellDetailsToJson: String = gson.toJson(arrayList[2])
+            preferences.edit().putString("${it.key}_room_details", roomDetailsToJson).apply()
+            preferences.edit().putString("${it.key}_room_connections", roomConnectionsToJson).apply()
+            preferences.edit().putString("${it.key}_cell_details", cellDetailsToJson).apply()
+        }
+    }
+
+    private fun loadState() {
+        val preferences: SharedPreferences = applicationContext.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
+        val gson: Gson = GsonBuilder().serializeNulls().create()
+        roomsGraph.clear()
+        val allSharedPrefsData: MutableMap<String, *> = preferences.all
+        allSharedPrefsData.forEach {
+            val choppedKey: List<String> = it.key.split("_", limit = 2)
+            val roomId: Int = choppedKey[0].toInt()
+            if (roomsGraph[roomId].isNullOrEmpty())
+                roomsGraph[roomId] = arrayOfRoomAndCellDetails
+            val keyName: String = choppedKey[1]
+            if (keyName == "room_details") {
+                val roomDetailsTypeCast: Type = object : TypeToken<RoomDetails>() {}.type
+                val roomDetailsIsBack: RoomDetails = gson.fromJson(it.value.toString(), roomDetailsTypeCast)
+                roomsGraph[roomId]?.set(0, roomDetailsIsBack)
+            } else if (keyName == "room_connections") {
+                val roomConnectionsTypeCast: Type = object : TypeToken<HashMap<String, Int?>>() {}.type
+                val roomConnectionsIsBack: HashMap<String, Int?> = gson.fromJson(it.value.toString(), roomConnectionsTypeCast)
+                roomsGraph[roomId]?.set(1, roomConnectionsIsBack)
+            } else if (keyName == "cell_details") {
+                val cellDetailsTypeCast: Type = object : TypeToken<CellDetails>() {}.type
+                val cellDetailsIsBack: CellDetails = gson.fromJson(it.value.toString(), cellDetailsTypeCast)
+                roomsGraph[roomId]?.set(2, cellDetailsIsBack)
+            }
+        }
+        return
     }
 
     val roomDetails = RoomDetails()
