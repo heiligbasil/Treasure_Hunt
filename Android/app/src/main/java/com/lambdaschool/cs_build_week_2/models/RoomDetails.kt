@@ -20,6 +20,22 @@ class RoomDetails {
     @Expose
     var coordinates: String? = null
 
+    @SerializedName("elevation")
+    @Expose
+    var elevation: Int? = null
+
+    @SerializedName("terrain")
+    @Expose
+    var terrain: String? = null
+
+    @SerializedName("players")
+    @Expose
+    var players: List<String>? = null
+
+    @SerializedName("items")
+    @Expose
+    var items: List<String>? = null
+
     @SerializedName("exits")
     @Expose
     var exits: List<String>? = null
