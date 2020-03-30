@@ -8,79 +8,540 @@
     android:background="@drawable/stone"
     tools:context=".MainActivity">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/scroll_room_info"
+    <FrameLayout
+        android:id="@+id/frame_room_info"
         android:layout_width="120dp"
-        android:layout_height="200dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintBottom_toBottomOf="@id/view_map"
+        android:layout_height="0dp"
+        android:background="@drawable/ornate_frame"
+        app:layout_constraintBottom_toTopOf="@id/view_map"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/text_room_info_heading"
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/scroll_room_info"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:fontFamily="cursive"
-            android:lines="10"
-            android:text="Room Info:"
-            android:textColor="@color/colorPrimaryDark"
-            android:textFontWeight="900"
-            android:textSize="20sp" />
-    </androidx.core.widget.NestedScrollView>
+            android:paddingStart="6dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="2dp"
+            android:paddingBottom="6dp">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/scroll_commands"
-        android:layout_width="120dp"
-        android:layout_height="200dp"
-        android:layout_marginTop="16dp"
-        android:backgroundTint="@color/colorWhite"
-        android:backgroundTintMode="multiply"
-        app:layout_constraintBottom_toBottomOf="@id/view_map"
-        app:layout_constraintEnd_toStartOf="@id/scroll_log"
-        app:layout_constraintStart_toEndOf="@id/scroll_room_info"
+            <TextView
+                android:id="@+id/text_room_info_heading"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fontFamily="sans-serif-smallcaps"
+                android:lines="20"
+                android:text="Room Info:\nRoom Info is hel:\nRoom Info:\nRoomssssssssssssssssssssssssssssssssssssssssssssssssmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:"
+                android:textColor="@color/colorRuby"
+                android:textFontWeight="900"
+                android:textSize="10sp" />
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/constraint_move"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        app:layout_constraintEnd_toStartOf="@id/frame_commands"
+        app:layout_constraintStart_toEndOf="@id/frame_room_info"
         app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/text_commands_heading"
+        <Button
+            android:id="@+id/button_move_north"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:width="30dp"
+            android:height="30dp"
+            android:alpha="0"
+            android:background="?android:selectableItemBackgroundBorderless"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/button_move_south"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:width="30dp"
+            android:height="30dp"
+            android:alpha="0"
+            android:background="?android:selectableItemBackgroundBorderless"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Button
+            android:id="@+id/button_move_east"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:width="30dp"
+            android:height="30dp"
+            android:alpha="0"
+            android:background="?android:selectableItemBackgroundBorderless"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/button_move_west"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:width="30dp"
+            android:height="30dp"
+            android:alpha="0"
+            android:background="?android:selectableItemBackgroundBorderless"
+            android:minWidth="0dp"
+            android:minHeight="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageView
+            android:layout_width="85dp"
+            android:layout_height="85dp"
+            android:adjustViewBounds="true"
+            android:src="@drawable/compass_rose"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <FrameLayout
+        android:id="@+id/frame_commands"
+        android:layout_width="60dp"
+        android:layout_height="0dp"
+        android:background="@drawable/ornate_frame"
+        app:layout_constraintBottom_toTopOf="@id/view_map"
+        app:layout_constraintEnd_toStartOf="@id/frame_log"
+        app:layout_constraintStart_toEndOf="@id/constraint_move"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:fontFamily="cursive"
-            android:lines="10"
-            android:text="Commands:"
-            android:textColor="@color/colorPrimaryDark"
-            android:textFontWeight="900"
-            android:textSize="20sp" />
-    </androidx.core.widget.NestedScrollView>
+            android:orientation="vertical"
+            android:paddingStart="4dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="2dp"
+            android:paddingBottom="6dp">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/scroll_log"
+            <TextView
+                android:id="@+id/text_commands_heading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-smallcaps"
+                android:text="Commands:"
+                android:textColor="@color/colorRuby"
+                android:textFontWeight="900"
+                android:textSize="10sp" />
+
+            <androidx.core.widget.NestedScrollView
+                android:id="@+id/scroll_commands"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:paddingEnd="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical">
+
+                    <Button
+                        android:id="@+id/button_init"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Init"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_take"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Take"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_drop"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Drop"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_status"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Status"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_buy"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Buy"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_sell"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Sell"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_wear"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Wear"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_undress"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Undress"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_examine"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Examine"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_change_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Change name"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_pray"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Pray"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_fly"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Fly"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_dash"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Dash"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_player_state"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Player state"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_transmogrify"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Transmogrify"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_carry"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Carry"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_receive"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Receive"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_warp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Warp"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_recall"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Recall"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_mine"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Mine"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_totals"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Totals"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_last_proof"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Last proof"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_get_balance"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorForestFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Get balance"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                </LinearLayout>
+            </androidx.core.widget.NestedScrollView>
+        </LinearLayout>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/frame_log"
         android:layout_width="120dp"
-        android:layout_height="200dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        app:layout_constraintBottom_toBottomOf="@id/view_map"
+        android:layout_height="0dp"
+        android:background="@drawable/ornate_frame"
+        app:layout_constraintBottom_toTopOf="@id/view_map"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <TextView
-            android:id="@+id/text_log_heading"
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/scroll_log"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:fontFamily="cursive"
-            android:lines="10"
-            android:text="Log:"
-            android:textColor="@color/colorPrimaryDark"
-            android:textFontWeight="900"
-            android:textSize="20sp" />
-    </androidx.core.widget.NestedScrollView>
+            android:paddingStart="6dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="2dp"
+            android:paddingBottom="6dp">
+
+            <TextView
+                android:id="@+id/text_log_heading"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fontFamily="sans-serif-smallcaps"
+                android:lines="1000"
+                android:text="Log:123456789415254679\nLog:123456789254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123456789415254679\nLog:123456789415254679\nLog:123456789:123456789415254679\n"
+                android:textColor="@color/colorRuby"
+                android:textFontWeight="900"
+                android:textSize="10sp" />
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
 
     <com.lambdaschool.cs_build_week_2.AdventureMapView
         android:id="@+id/view_map"
         android:layout_width="match_parent"
-        android:layout_height="500dp"
-        android:layout_margin="16dp"
+        android:layout_height="475dp"
+        android:background="@drawable/celtic_frame"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
