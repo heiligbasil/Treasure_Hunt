@@ -58,10 +58,8 @@ class MainActivity : AppCompatActivity() {
                         if (roomsGraph[roomId].isNullOrEmpty())
                             roomsGraph[roomId] = arrayOfRoomAndCellDetails
                         roomsGraph[roomId]?.set(0, responseBody)
-//                        roomsGraph[roomId]?.set(1,validateRoomConnections(roomId))
+                        roomsGraph[roomId]?.set(1, validateRoomConnections(roomId))
                         roomsGraph[roomId]?.set(2, fillCellDetails(roomId))
-
-                        return
                     } else {
                         val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
                             ?.substringBefore("Django Version:")}"
@@ -78,7 +76,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun validateRoomConnections(roomId: Int?): HashMap<String, Int?> {
-        TODO("Not yet implemented")
+        val extractedRoomDetailsExits = (roomsGraph[roomId]?.get(0) as RoomDetails).exits
+        val extractedRoomConnections = roomsGraph[roomId]?.get(1) as HashMap<*, *>
+        val validExits: HashMap<String, Int?> = hashMapOf()
+        if (extractedRoomDetailsExits?.size != extractedRoomConnections.size) {
+            extractedRoomDetailsExits?.forEach {
+                validExits[it] = extractedRoomConnections[it] as Int?
+            }
+        }
+        return validExits
     }
 
     private fun fillCellDetails(roomId: Int?): CellDetails {
