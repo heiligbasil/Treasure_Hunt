@@ -62,12 +62,13 @@ class MainActivity : AppCompatActivity() {
                         val responseBody: RoomDetails? = response.body()
                         val roomId: Int? = responseBody?.roomId
                         if (roomsGraph[roomId].isNullOrEmpty())
-                            roomsGraph[roomId] = arrayOfRoomAndCellDetails
+                            roomsGraph[roomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
                         roomsGraph[roomId]?.set(0, responseBody)
                         roomsGraph[roomId]?.set(1, validateRoomConnections(roomId))
                         roomsGraph[roomId]?.set(2, fillCellDetails(roomId))
                         saveState()
                         loadState()
+                        return
                     } else {
                         val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
                             ?.substringBefore("Django Version:")}"
@@ -115,6 +116,7 @@ class MainActivity : AppCompatActivity() {
             preferences.edit().putString("${it.key}_room_connections", roomConnectionsToJson).apply()
             preferences.edit().putString("${it.key}_cell_details", cellDetailsToJson).apply()
         }
+        return
     }
 
     private fun loadState() {
@@ -126,7 +128,7 @@ class MainActivity : AppCompatActivity() {
             val choppedKey: List<String> = it.key.split("_", limit = 2)
             val roomId: Int = choppedKey[0].toInt()
             if (roomsGraph[roomId].isNullOrEmpty())
-                roomsGraph[roomId] = arrayOfRoomAndCellDetails
+                roomsGraph[roomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
             val keyName: String = choppedKey[1]
             if (keyName == "room_details") {
                 val roomDetailsTypeCast: Type = object : TypeToken<RoomDetails>() {}.type
@@ -148,7 +150,7 @@ class MainActivity : AppCompatActivity() {
     val roomDetails = RoomDetails()
     val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
     val cellDetails = CellDetails()
-    val arrayOfRoomAndCellDetails: ArrayList<Any?> = arrayListOf(roomDetails, roomConnections, cellDetails)
+//    val arrayOfRoomAndCellDetails: ArrayList<Any?> = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
 
     companion object {
         val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
