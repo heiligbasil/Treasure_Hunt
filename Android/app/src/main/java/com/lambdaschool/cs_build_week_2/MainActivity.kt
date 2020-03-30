@@ -14,6 +14,7 @@ import com.lambdaschool.cs_build_week_2.api.AdvInitInterface
 import com.lambdaschool.cs_build_week_2.models.CellDetails
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.initial_greeting.*
 import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
@@ -26,9 +27,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.initial_greeting)
 
-        token.setOnEditorActionListener { v, _, _ ->
+        edit_token.setOnEditorActionListener { v, _, _ ->
             val retrofit: Retrofit = Retrofit.Builder()
                 .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
                 .addConverterFactory(GsonConverterFactory.create())
