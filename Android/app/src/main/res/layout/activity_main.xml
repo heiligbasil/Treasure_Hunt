@@ -5,17 +5,84 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/stone"
     tools:context=".MainActivity">
 
-    <EditText
-        android:id="@+id/token"
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_room_info"
+        android:layout_width="120dp"
+        android:layout_height="200dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintBottom_toBottomOf="@id/view_map"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/text_room_info_heading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="cursive"
+            android:lines="10"
+            android:text="Room Info:"
+            android:textColor="@color/colorPrimaryDark"
+            android:textFontWeight="900"
+            android:textSize="20sp" />
+    </androidx.core.widget.NestedScrollView>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_commands"
+        android:layout_width="120dp"
+        android:layout_height="200dp"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="@color/colorWhite"
+        android:backgroundTintMode="multiply"
+        app:layout_constraintBottom_toBottomOf="@id/view_map"
+        app:layout_constraintEnd_toStartOf="@id/scroll_log"
+        app:layout_constraintStart_toEndOf="@id/scroll_room_info"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/text_commands_heading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="cursive"
+            android:lines="10"
+            android:text="Commands:"
+            android:textColor="@color/colorPrimaryDark"
+            android:textFontWeight="900"
+            android:textSize="20sp" />
+    </androidx.core.widget.NestedScrollView>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scroll_log"
+        android:layout_width="120dp"
+        android:layout_height="200dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintBottom_toBottomOf="@id/view_map"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/text_log_heading"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fontFamily="cursive"
+            android:lines="10"
+            android:text="Log:"
+            android:textColor="@color/colorPrimaryDark"
+            android:textFontWeight="900"
+            android:textSize="20sp" />
+    </androidx.core.widget.NestedScrollView>
+
+    <com.lambdaschool.cs_build_week_2.AdventureMapView
+        android:id="@+id/view_map"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter Token:"
-        android:inputType="textPassword"
-        android:gravity="center"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="500dp"
+        android:layout_margin="16dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

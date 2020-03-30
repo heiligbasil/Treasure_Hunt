@@ -27,14 +27,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.initial_greeting)
+        setContentView(R.layout.activity_main)
 
-        edit_token.setOnEditorActionListener { v, _, _ ->
+//        edit_token.setOnEditorActionListener { v, _, _ ->
             val retrofit: Retrofit = Retrofit.Builder()
                 .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .client(OkHttpClient.Builder().addInterceptor { chain ->
-                    val request = chain.request().newBuilder().addHeader("Authorization", "Token ${v.text}").build()
+                    val request = chain.request().newBuilder().addHeader("Authorization", "Token ${token}").build()
                     chain.proceed(request)
                 }.build())
                 .build()
@@ -80,8 +80,8 @@ class MainActivity : AppCompatActivity() {
                 }
 
             })
-            return@setOnEditorActionListener true
-        }
+//            return@setOnEditorActionListener true
+//        }
 
     }
 
