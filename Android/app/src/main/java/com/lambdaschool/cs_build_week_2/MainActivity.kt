@@ -150,7 +150,6 @@ class MainActivity : AppCompatActivity() {
     val roomDetails = RoomDetails()
     val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
     val cellDetails = CellDetails()
-//    val arrayOfRoomAndCellDetails: ArrayList<Any?> = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
 
     companion object {
         val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
