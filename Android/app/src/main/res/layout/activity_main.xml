@@ -30,6 +30,7 @@
                 android:id="@+id/text_room_info_heading"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:background="@color/colorCloudFade"
                 android:fontFamily="sans-serif-smallcaps"
                 android:lines="20"
                 android:text="Room Info:\nRoom Info is hel:\nRoom Info:\nRoomssssssssssssssssssssssssssssssssssssssssssssssssmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:\nRoom Info:"
@@ -521,13 +522,14 @@
             android:layout_height="match_parent"
             android:paddingStart="6dp"
             android:paddingTop="6dp"
-            android:paddingEnd="2dp"
+            android:paddingEnd="6dp"
             android:paddingBottom="6dp">
 
             <TextView
                 android:id="@+id/text_log_heading"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:background="@color/colorRubyFade"
                 android:fontFamily="sans-serif-smallcaps"
                 android:lines="1000"
                 android:text="Log:123456789415254679\nLog:123456789254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123459415254679\nLog:123456789415254679\nLog:123456789415254679\nLog:123456789:123456789415254679\n"
