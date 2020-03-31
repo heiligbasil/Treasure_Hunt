@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/stone"
-    tools:context=".MainActivity">
+    tools:context=".views.MainActivity">
 
     <FrameLayout
         android:id="@+id/frame_room_info"
@@ -540,7 +540,7 @@
         </androidx.core.widget.NestedScrollView>
     </FrameLayout>
 
-    <com.lambdaschool.cs_build_week_2.AdventureMapView
+    <com.lambdaschool.cs_build_week_2.views.AdventureMapView
         android:id="@+id/view_map"
         android:layout_width="match_parent"
         android:layout_height="475dp"

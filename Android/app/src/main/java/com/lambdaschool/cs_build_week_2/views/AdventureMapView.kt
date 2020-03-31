@@ -1,4 +1,4 @@
-package com.lambdaschool.cs_build_week_2
+package com.lambdaschool.cs_build_week_2.views
 
 import android.content.Context
 import android.graphics.Canvas
