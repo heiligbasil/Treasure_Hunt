@@ -44,6 +44,7 @@
         android:id="@+id/constraint_move"
         android:layout_width="100dp"
         android:layout_height="100dp"
+        android:layout_marginTop="10dp"
         app:layout_constraintEnd_toStartOf="@id/frame_commands"
         app:layout_constraintStart_toEndOf="@id/frame_room_info"
         app:layout_constraintTop_toTopOf="parent">
