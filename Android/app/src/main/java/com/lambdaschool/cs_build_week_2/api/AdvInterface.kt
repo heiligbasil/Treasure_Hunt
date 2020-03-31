@@ -3,6 +3,7 @@ package com.lambdaschool.cs_build_week_2.api
 import com.lambdaschool.cs_build_week_2.models.MoveWisely
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
 import com.lambdaschool.cs_build_week_2.models.Status
+import com.lambdaschool.cs_build_week_2.models.TakeTreasure
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -19,8 +20,8 @@ interface MoveInterface {
 }
 
 interface TakeInterface {
-    @GET("adv/take/")
-    fun getTake(): Call<RoomDetails>
+    @POST("adv/take/")
+    fun postTake(@Body takeTreasure: TakeTreasure): Call<RoomDetails>
 }
 
 interface DropInterface {

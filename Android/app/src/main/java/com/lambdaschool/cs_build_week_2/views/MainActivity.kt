@@ -10,14 +10,13 @@ import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.InitInterface
 import com.lambdaschool.cs_build_week_2.api.MoveInterface
 import com.lambdaschool.cs_build_week_2.api.StatusInterface
-import com.lambdaschool.cs_build_week_2.models.CellDetails
-import com.lambdaschool.cs_build_week_2.models.MoveWisely
-import com.lambdaschool.cs_build_week_2.models.RoomDetails
-import com.lambdaschool.cs_build_week_2.models.Status
+import com.lambdaschool.cs_build_week_2.api.TakeInterface
+import com.lambdaschool.cs_build_week_2.models.*
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.synthetic.main.activity_main.*
 import okhttp3.OkHttpClient
+import okhttp3.internal.toHexString
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -54,7 +53,17 @@ class MainActivity : AppCompatActivity() {
         button_move_east.setOnClickListener { moveInDirection("e") }
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
-        button_take.setOnClickListener {}
+        button_take.setOnClickListener {
+            //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
+            val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
+            if (roomItems.isNotEmpty()) {
+                val takeTreasure: TakeTreasure = TakeTreasure(roomItems[0])
+                networkPostTake(takeTreasure)
+            }
+            else {
+                UserInteraction.inform(this,"Nothing to take!")
+            }
+        }
         button_drop.setOnClickListener {}
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {}
@@ -240,6 +249,53 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun networkPostTake(takeTreasure: TakeTreasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: TakeInterface = retrofit.create(TakeInterface::class.java)
+        val call: Call<RoomDetails> = service.postTake(takeTreasure)
+        call.enqueue(object : Callback<RoomDetails> {
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails? = response.body()
+                    text_room_info.text = responseBody.toString()
+                    val message: String = "Code ${response.code()}: Take success!\n${responseBody?.messages?.joinToString("\n")}"
+                    text_log.append(message + "\n")
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
+                        ?.substringBefore("Django Version:")}"
+                    text_log.append("$errorText\n")
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+            }
+        })
+    }
+
     private fun updateGraphDetails(responseBody: RoomDetails?) {
         currentRoomId = responseBody?.roomId ?: 0
         if (roomsGraph[currentRoomId].isNullOrEmpty())
@@ -274,6 +330,6 @@ class MainActivity : AppCompatActivity() {
         val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
         // TODO: Change cell color depending on condition
-        return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), Color.BLUE)
+        return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), Color.BLUE.toHexString())
     }
 }
