@@ -163,11 +163,12 @@ class MainActivity : AppCompatActivity() {
                     val originalRoomId: Int = currentRoomId
                     val responseBody: RoomDetails? = response.body()
                     updateGraphDetails(responseBody)
+                    setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
-                    text_log.append("${response.code()}: Move success!\n")
-                    UserInteraction.inform(applicationContext, "${response.code()}: Move success!")
-                    setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
+                    val message: String = "Code ${response.code()}: Move success!\n${responseBody?.messages?.joinToString("\n")}"
+                    text_log.append(message + "\n")
+                    UserInteraction.inform(applicationContext, message)
                 } else {
                     val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
                         ?.substringBefore("Django Version:")}"
@@ -206,10 +207,8 @@ class MainActivity : AppCompatActivity() {
         val extractedRoomDetailsExits = (roomsGraph[roomId]?.get(0) as RoomDetails).exits
         val extractedRoomConnections = roomsGraph[roomId]?.get(1) as HashMap<*, *>
         val validExits: HashMap<String, Int?> = hashMapOf()
-        if (extractedRoomDetailsExits?.size != extractedRoomConnections.size) {
-            extractedRoomDetailsExits?.forEach {
-                validExits[it] = extractedRoomConnections[it] as Int?
-            }
+        extractedRoomDetailsExits?.forEach {
+            validExits[it] = extractedRoomConnections[it] as Int?
         }
         return validExits
     }
