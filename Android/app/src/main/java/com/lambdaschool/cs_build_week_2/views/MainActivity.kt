@@ -1,51 +1,81 @@
 package com.lambdaschool.cs_build_week_2.views
 
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.AdvInitInterface
 import com.lambdaschool.cs_build_week_2.models.CellDetails
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
+import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
+import com.lambdaschool.cs_build_week_2.utils.UserInteraction
+import kotlinx.android.synthetic.main.activity_main.*
 import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.lang.reflect.Type
 
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        title = "Lambda Treasure Hunt"
+        initialize(this)
 
         val initialGreeting = Intent(this, InitialActivity::class.java)
         startActivity(initialGreeting)
 
-        val dialog: AlertDialog = AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
-            .setTitle("Shopkeeper Sunnie")
-            .setCancelable(false)
-            .setIcon(android.R.drawable.ic_dialog_dialer)
-            .setMessage("Are you sure you want to sell that item?")
-            .setPositiveButton("Confirm", DialogInterface.OnClickListener { dialog, which ->
+        button_move_north.setOnClickListener { }
+        button_move_south.setOnClickListener { }
+        button_move_east.setOnClickListener { }
+        button_move_west.setOnClickListener { }
+        button_init.setOnClickListener {
+            NetworkOperations()
 
-            })
-            .setNegativeButton("Just browsing", DialogInterface.OnClickListener { dialog, which -> dialog.cancel() })
-            .show()
+        }
+        button_take.setOnClickListener {}
+        button_drop.setOnClickListener {}
+        button_status.setOnClickListener {}
+        button_buy.setOnClickListener {}
+        button_sell.setOnClickListener {
+            UserInteraction.askQuestion(
+                this,
+                "Shopkeeper Sunnie",
+                "Are you sure you want to sell that item?",
+                "Confirm",
+                "Just browsing"
+            )
+        }
+        button_wear.setOnClickListener {}
+        button_undress.setOnClickListener {}
+        button_examine.setOnClickListener {}
+        button_change_name.setOnClickListener {}
+        button_pray.setOnClickListener {}
+        button_fly.setOnClickListener {}
+        button_dash.setOnClickListener {}
+        button_player_state.setOnClickListener {}
+        button_transmogrify.setOnClickListener {}
+        button_carry.setOnClickListener {}
+        button_receive.setOnClickListener {}
+        button_warp.setOnClickListener {}
+        button_recall.setOnClickListener {}
+        button_mine.setOnClickListener {}
+        button_totals.setOnClickListener {}
+        button_last_proof.setOnClickListener {}
+        button_get_balance.setOnClickListener {}
 
 
+    }
+
+    private fun NetworkOperations() {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -83,8 +113,7 @@ class MainActivity : AppCompatActivity() {
                     roomsGraph[roomId]?.set(0, responseBody)
                     roomsGraph[roomId]?.set(1, validateRoomConnections(roomId))
                     roomsGraph[roomId]?.set(2, fillCellDetails(roomId))
-                    saveState()
-                    loadState()
+                    SharedPrefs.saveState()
                     return
                 } else {
                     val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
@@ -118,55 +147,18 @@ class MainActivity : AppCompatActivity() {
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), Color.BLUE)
     }
 
-    private fun saveState() {
-        val preferences: SharedPreferences = applicationContext.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
-        val gson: Gson = GsonBuilder().serializeNulls().create()
-        roomsGraph.forEach {
-            val arrayList: ArrayList<Any?> = roomsGraph[it.key] ?: arrayListOf()
-            val roomDetailsToJson: String = gson.toJson(arrayList[0])
-            val roomConnectionsToJson: String = gson.toJson(arrayList[1])
-            val cellDetailsToJson: String = gson.toJson(arrayList[2])
-            preferences.edit().putString("${it.key}_room_details", roomDetailsToJson).apply()
-            preferences.edit().putString("${it.key}_room_connections", roomConnectionsToJson).apply()
-            preferences.edit().putString("${it.key}_cell_details", cellDetailsToJson).apply()
-        }
-        return
-    }
-
-    private fun loadState() {
-        val preferences: SharedPreferences = applicationContext.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
-        val gson: Gson = GsonBuilder().serializeNulls().create()
-        roomsGraph.clear()
-        val allSharedPrefsData: MutableMap<String, *> = preferences.all
-        allSharedPrefsData.forEach {
-            val choppedKey: List<String> = it.key.split("_", limit = 2)
-            val roomId: Int = choppedKey[0].toInt()
-            if (roomsGraph[roomId].isNullOrEmpty())
-                roomsGraph[roomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
-            val keyName: String = choppedKey[1]
-            if (keyName == "room_details") {
-                val roomDetailsTypeCast: Type = object : TypeToken<RoomDetails>() {}.type
-                val roomDetailsIsBack: RoomDetails = gson.fromJson(it.value.toString(), roomDetailsTypeCast)
-                roomsGraph[roomId]?.set(0, roomDetailsIsBack)
-            } else if (keyName == "room_connections") {
-                val roomConnectionsTypeCast: Type = object : TypeToken<HashMap<String, Int?>>() {}.type
-                val roomConnectionsIsBack: HashMap<String, Int?> = gson.fromJson(it.value.toString(), roomConnectionsTypeCast)
-                roomsGraph[roomId]?.set(1, roomConnectionsIsBack)
-            } else if (keyName == "cell_details") {
-                val cellDetailsTypeCast: Type = object : TypeToken<CellDetails>() {}.type
-                val cellDetailsIsBack: CellDetails = gson.fromJson(it.value.toString(), cellDetailsTypeCast)
-                roomsGraph[roomId]?.set(2, cellDetailsIsBack)
-            }
-        }
-        return
-    }
-
-    val roomDetails = RoomDetails()
-    val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
-    val cellDetails = CellDetails()
 
     companion object {
+        val roomDetails = RoomDetails()
+        val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
+        val cellDetails = CellDetails()
         val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
         var authorizationToken: String? = null
+        lateinit var preferences: SharedPreferences
+        fun initialize(context: Context) {
+            if (!Companion::preferences.isInitialized) {
+                preferences = context.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
+            }
+        }
     }
 }

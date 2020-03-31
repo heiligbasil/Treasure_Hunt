@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.widget.Toast
 import com.lambdaschool.cs_build_week_2.R
+import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import kotlinx.android.synthetic.main.activity_initial.*
 
 class InitialActivity : AppCompatActivity() {
@@ -12,10 +13,11 @@ class InitialActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_initial)
-
+        title = "Lambda Treasure Hunt - Token"
         button_begin.setOnClickListener {
             if (edit_token.text.length == 40) {
                 MainActivity.authorizationToken = edit_token.text.toString()
+                SharedPrefs.loadState()
                 finish()
                 overridePendingTransition(0, android.R.anim.fade_out)
             } else {
