@@ -51,4 +51,24 @@ class RoomDetails {
     @SerializedName("messages")
     @Expose
     var messages: List<String>? = null
+
+    /**
+     * Returns a string representation of the object.
+     */
+    override fun toString(): String {
+        val sb: StringBuilder = java.lang.StringBuilder()
+        sb.appendln("Details for Room: $roomId")
+        sb.appendln("Title: $title")
+        sb.appendln("Description: $description")
+        sb.appendln("Coordinates: $coordinates")
+        sb.appendln("Elevation: $elevation")
+        sb.appendln("Terrain: $terrain")
+        sb.appendln("Players: ${players?.joinToString()}")
+        sb.appendln("Items: ${items?.joinToString()}")
+        sb.appendln("Exits: ${exits?.joinToString()}")
+        sb.appendln("Cooldown: $cooldown")
+        sb.appendln("Errors: ${errors?.joinToString()}")
+        sb.appendln("Messages: ${messages?.joinToString()}")
+        return sb.toString()
+    }
 }
