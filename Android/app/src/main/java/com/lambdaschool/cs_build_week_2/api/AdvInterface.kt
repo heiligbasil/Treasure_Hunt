@@ -2,6 +2,7 @@ package com.lambdaschool.cs_build_week_2.api
 
 import com.lambdaschool.cs_build_week_2.models.MoveWisely
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
+import com.lambdaschool.cs_build_week_2.models.Status
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -14,95 +15,95 @@ interface InitInterface {
 
 interface MoveInterface {
     @POST("adv/move/")
-    fun getMove(@Body moveWisely: MoveWisely): Call<RoomDetails>
+    fun postMove(@Body moveWisely: MoveWisely): Call<RoomDetails>
 }
 
 interface TakeInterface {
     @GET("adv/take/")
-    fun getMove(): Call<RoomDetails>
+    fun getTake(): Call<RoomDetails>
 }
 
 interface DropInterface {
     @GET("adv/drop/")
-    fun getMove(): Call<RoomDetails>
+    fun getDrop(): Call<RoomDetails>
 }
 
 interface StatusInterface {
-    @GET("adv/status/")
-    fun getMove(): Call<RoomDetails>
+    @POST("adv/status/")
+    fun postStatus(): Call<Status>
 }
 
 interface BuyInterface {
     @GET("adv/buy/")
-    fun getMove(): Call<RoomDetails>
+    fun getBuy(): Call<RoomDetails>
 }
 
 interface SellInterface {
     @GET("adv/sell/")
-    fun getMove(): Call<RoomDetails>
+    fun getSell(): Call<RoomDetails>
 }
 
 interface WearInterface {
     @GET("adv/wear/")
-    fun getMove(): Call<RoomDetails>
+    fun getWear(): Call<RoomDetails>
 }
 
 interface UndressInterface {
     @GET("adv/undress/")
-    fun getMove(): Call<RoomDetails>
+    fun getUndress(): Call<RoomDetails>
 }
 
 interface ExamineInterface {
     @GET("adv/examine/")
-    fun getMove(): Call<RoomDetails>
+    fun getExamine(): Call<RoomDetails>
 }
 
 interface ChangeNameInterface {
     @GET("adv/change_name/")
-    fun getMove(): Call<RoomDetails>
+    fun getChangeName(): Call<RoomDetails>
 }
 
 interface PrayInterface {
     @GET("adv/pray/")
-    fun getMove(): Call<RoomDetails>
+    fun getPray(): Call<RoomDetails>
 }
 
 interface FlyInterface {
     @GET("adv/fly/")
-    fun getMove(): Call<RoomDetails>
+    fun getFly(): Call<RoomDetails>
 }
 
 interface DashInterface {
     @GET("adv/dash/")
-    fun getMove(): Call<RoomDetails>
+    fun getDash(): Call<RoomDetails>
 }
 
 interface PlayerStateInterface {
     @GET("adv/player_state/")
-    fun getMove(): Call<RoomDetails>
+    fun getPlayerState(): Call<RoomDetails>
 }
 
 interface TransmogrifyInterface {
     @GET("adv/transmogrify/")
-    fun getMove(): Call<RoomDetails>
+    fun getTransmogrify(): Call<RoomDetails>
 }
 
 interface CarryInterface {
     @GET("adv/carry/")
-    fun getMove(): Call<RoomDetails>
+    fun getCarry(): Call<RoomDetails>
 }
 
 interface ReceiveInterface {
     @GET("adv/receive/")
-    fun getMove(): Call<RoomDetails>
+    fun getReceive(): Call<RoomDetails>
 }
 
 interface WarpInterface {
     @GET("adv/warp/")
-    fun getMove(): Call<RoomDetails>
+    fun getWarp(): Call<RoomDetails>
 }
 
 interface RecallInterface {
     @GET("adv/recall/")
-    fun getMove(): Call<RoomDetails>
+    fun getRecall(): Call<RoomDetails>
 }

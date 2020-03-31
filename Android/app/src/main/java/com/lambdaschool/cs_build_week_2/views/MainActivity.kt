@@ -9,9 +9,11 @@ import androidx.appcompat.app.AppCompatActivity
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.InitInterface
 import com.lambdaschool.cs_build_week_2.api.MoveInterface
+import com.lambdaschool.cs_build_week_2.api.StatusInterface
 import com.lambdaschool.cs_build_week_2.models.CellDetails
 import com.lambdaschool.cs_build_week_2.models.MoveWisely
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
+import com.lambdaschool.cs_build_week_2.models.Status
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.synthetic.main.activity_main.*
@@ -47,25 +49,14 @@ class MainActivity : AppCompatActivity() {
         initialize(this)
         startActivity(Intent(this, InitialActivity::class.java))
 
-        button_move_north.setOnClickListener {
-            val nextRoom: String? = anticipateNextRoom("n")
-            val moveWisely: MoveWisely = MoveWisely("n", nextRoom)
-            networkPost(moveWisely)
-        }
-        button_move_south.setOnClickListener {
-            val nextRoom: String? = anticipateNextRoom("s")
-            val moveWisely: MoveWisely = MoveWisely("s", nextRoom)
-            networkPost(moveWisely)
-        }
-        button_move_east.setOnClickListener { }
-        button_move_west.setOnClickListener { }
-        button_init.setOnClickListener {
-            networkGet()
-
-        }
+        button_move_north.setOnClickListener { moveInDirection("n") }
+        button_move_south.setOnClickListener { moveInDirection("s") }
+        button_move_east.setOnClickListener { moveInDirection("e") }
+        button_move_west.setOnClickListener { moveInDirection("w") }
+        button_init.setOnClickListener { networkGetInit() }
         button_take.setOnClickListener {}
         button_drop.setOnClickListener {}
-        button_status.setOnClickListener {}
+        button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {}
         button_sell.setOnClickListener {
             UserInteraction.askQuestion(
@@ -97,7 +88,13 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun networkGet() {
+    private fun moveInDirection(direction: String) {
+        val nextRoom: String? = anticipateNextRoom(direction)
+        val moveWisely: MoveWisely = MoveWisely(direction, nextRoom)
+        networkPostMove(moveWisely)
+    }
+
+    private fun networkGetInit() {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -132,7 +129,7 @@ class MainActivity : AppCompatActivity() {
                     updateGraphDetails(responseBody)
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
-                    text_log.append("${response.code()}: Init success!\n")
+                    text_log.append("Code ${response.code()}: Init success!\n")
                     UserInteraction.inform(applicationContext, "${response.code()}: Init success!")
                 } else {
                     val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
@@ -144,7 +141,7 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun networkPost(moveWisely: MoveWisely) {
+    private fun networkPostMove(moveWisely: MoveWisely) {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -156,7 +153,7 @@ class MainActivity : AppCompatActivity() {
             }.build())
             .build()
         val service: MoveInterface = retrofit.create(MoveInterface::class.java)
-        val call: Call<RoomDetails> = service.getMove(moveWisely)
+        val call: Call<RoomDetails> = service.postMove(moveWisely)
         call.enqueue(object : Callback<RoomDetails> {
             /**
              * Invoked when a network exception occurred talking to the server or when an unexpected
@@ -183,6 +180,54 @@ class MainActivity : AppCompatActivity() {
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
                     val message: String = "Code ${response.code()}: Move success!\n${responseBody?.messages?.joinToString("\n")}"
+                    text_log.append(message + "\n")
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
+                        ?.substringBefore("Django Version:")}"
+                    text_log.append("$errorText\n")
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+            }
+        })
+    }
+
+    private fun networkPostStatus() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: StatusInterface = retrofit.create(StatusInterface::class.java)
+        val call: Call<Status> = service.postStatus()
+        call.enqueue(object : Callback<Status> {
+            /**
+             * Invoked when a network exception occurred talking to the server or when an unexpected
+             * exception occurred creating the request or processing the response.
+             */
+            override fun onFailure(call: Call<Status>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            /**
+             * Invoked for a received HTTP response.
+             *
+             *
+             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
+             * Call [Response.isSuccessful] to determine if the response indicates success.
+             */
+            override fun onResponse(call: Call<Status>, response: Response<Status>) {
+                if (response.isSuccessful) {
+                    val responseBody: Status? = response.body()
+                    text_room_info.text = responseBody.toString()
+                    val message: String =
+                        "Code ${response.code()}: Inventory status success!\n${responseBody?.messages?.joinToString("\n")}"
                     text_log.append(message + "\n")
                     UserInteraction.inform(applicationContext, message)
                 } else {
