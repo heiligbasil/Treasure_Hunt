@@ -121,12 +121,7 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails? = response.body()
-                    currentRoomId = responseBody?.roomId ?: 0
-                    if (roomsGraph[currentRoomId].isNullOrEmpty())
-                        roomsGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
-                    roomsGraph[currentRoomId]?.set(0, responseBody)
-                    roomsGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
-                    roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+                    updateGraphDetails(responseBody)
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
                     text_log.append("${response.code()}: Init success!\n")
@@ -174,12 +169,7 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails? = response.body()
-                    currentRoomId = responseBody?.roomId ?: 0
-                    if (roomsGraph[currentRoomId].isNullOrEmpty())
-                        roomsGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
-                    roomsGraph[currentRoomId]?.set(0, responseBody)
-                    roomsGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
-                    roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+                    updateGraphDetails(responseBody)
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
                     text_log.append("${response.code()}: Move success!\n")
@@ -193,6 +183,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun updateGraphDetails(responseBody: RoomDetails?) {
+        currentRoomId = responseBody?.roomId ?: 0
+        if (roomsGraph[currentRoomId].isNullOrEmpty())
+            roomsGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
+        roomsGraph[currentRoomId]?.set(0, responseBody)
+        roomsGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
+        roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
     }
 
     private fun anticipateNextRoom(direction: String): Int? {
