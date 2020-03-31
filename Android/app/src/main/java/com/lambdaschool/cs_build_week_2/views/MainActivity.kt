@@ -5,11 +5,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
-import android.view.Gravity
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.InitInterface
 import com.lambdaschool.cs_build_week_2.api.MoveInterface
@@ -25,7 +21,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.lang.reflect.Type
 
 class MainActivity : AppCompatActivity() {
 
@@ -37,17 +32,14 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent(this, InitialActivity::class.java))
 
         button_move_north.setOnClickListener {
-            val nextRoom: Int? = anticipateNextRoom("n")
-            val moveWisely: MoveWisely = MoveWisely("n", nextRoom.toString())
-            val moveWiselyJsonified: String = Gson().toJson(moveWisely)
-            return@setOnClickListener
+            val nextRoom: String? = anticipateNextRoom("n")
+            val moveWisely: MoveWisely = MoveWisely("n", nextRoom)
+            networkPost(moveWisely)
         }
         button_move_south.setOnClickListener {
-            val nextRoom: Int? = anticipateNextRoom("s")
-            val moveWisely: MoveWisely = MoveWisely("s", null)
-            val moveWiselyJsonified: String = Gson().toJson(moveWisely)
-            networkPost(moveWiselyJsonified)
-            return@setOnClickListener
+            val nextRoom: String? = anticipateNextRoom("s")
+            val moveWisely: MoveWisely = MoveWisely("s", nextRoom)
+            networkPost(moveWisely)
         }
         button_move_east.setOnClickListener { }
         button_move_west.setOnClickListener { }
@@ -107,7 +99,7 @@ class MainActivity : AppCompatActivity() {
              * exception occurred creating the request or processing the response.
              */
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append(t.message)
+                text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
@@ -129,14 +121,14 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
                         ?.substringBefore("Django Version:")}"
-                    text_log.append(errorText)
+                    text_log.append("$errorText\n")
                     UserInteraction.inform(applicationContext, errorText)
                 }
             }
         })
     }
 
-    private fun networkPost(jsonString: String) {
+    private fun networkPost(moveWisely: MoveWisely) {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -148,14 +140,14 @@ class MainActivity : AppCompatActivity() {
             }.build())
             .build()
         val service: MoveInterface = retrofit.create(MoveInterface::class.java)
-        val call: Call<RoomDetails> = service.getMove(jsonString)
+        val call: Call<RoomDetails> = service.getMove(moveWisely)
         call.enqueue(object : Callback<RoomDetails> {
             /**
              * Invoked when a network exception occurred talking to the server or when an unexpected
              * exception occurred creating the request or processing the response.
              */
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append(t.message)
+                text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
@@ -168,17 +160,18 @@ class MainActivity : AppCompatActivity() {
              */
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
+                    val originalRoomId: Int = currentRoomId
                     val responseBody: RoomDetails? = response.body()
                     updateGraphDetails(responseBody)
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
                     text_log.append("${response.code()}: Move success!\n")
                     UserInteraction.inform(applicationContext, "${response.code()}: Move success!")
-                    return
+                    setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
                 } else {
                     val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
                         ?.substringBefore("Django Version:")}"
-                    text_log.append(errorText)
+                    text_log.append("$errorText\n")
                     UserInteraction.inform(applicationContext, errorText)
                 }
             }
@@ -194,15 +187,14 @@ class MainActivity : AppCompatActivity() {
         roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
     }
 
-    private fun anticipateNextRoom(direction: String): Int? {
+    private fun anticipateNextRoom(direction: String): String? {
         val directionAssociations = roomsGraph[currentRoomId]?.get(1) as HashMap<*, *>
-        val nextRoom: Int? = directionAssociations[direction] as Int?
-        return nextRoom
+        return (directionAssociations[direction] as Int?)?.toString()
     }
 
-    private fun setRoomIdForPreviousRoom(direction: String, roomId: Int?){
+    private fun setRoomIdForPreviousRoom(direction: String?, roomId: Int?) {
         @Suppress("UNCHECKED_CAST")
-        (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction]=roomId
+        (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
 //        val two = any as HashMap<String, Int>
 //        val directionAssociations = roomsGraph[currentRoomId]?.get(1) as HashMap<*, *>
 //        val directionsTypeCast: Type = object : TypeToken<HashMap<String, Int?>>() {}.type
@@ -234,6 +226,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         var currentRoomId: Int = 0
         val roomDetails = RoomDetails()
+        val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
         val cellDetails = CellDetails()
         val roomsGraph = HashMap<Int?, ArrayList<Any?>>()

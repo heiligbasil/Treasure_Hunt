@@ -1,5 +1,6 @@
 package com.lambdaschool.cs_build_week_2.api
 
+import com.lambdaschool.cs_build_week_2.models.MoveWisely
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
 import retrofit2.Call
 import retrofit2.http.Body
@@ -13,7 +14,7 @@ interface InitInterface {
 
 interface MoveInterface {
     @POST("adv/move/")
-    fun getMove(@Body jsonString: String): Call<RoomDetails>
+    fun getMove(@Body moveWisely: MoveWisely): Call<RoomDetails>
 }
 
 interface TakeInterface {
