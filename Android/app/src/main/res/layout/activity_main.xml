@@ -301,7 +301,7 @@
                         android:background="@color/colorForestFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
-                        android:text="Change name"
+                        android:text="Δ Name"
                         android:textAllCaps="false"
                         android:textColor="@color/colorRuby"
                         android:textFontWeight="900"

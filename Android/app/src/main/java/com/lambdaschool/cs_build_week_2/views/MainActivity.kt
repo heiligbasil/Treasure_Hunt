@@ -24,6 +24,22 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        var currentRoomId: Int = 0
+        val roomDetails = RoomDetails()
+        val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
+        val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
+        val cellDetails = CellDetails()
+        val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
+        var authorizationToken: String? = null
+        lateinit var preferences: SharedPreferences
+        fun initialize(context: Context) {
+            if (!Companion::preferences.isInitialized) {
+                preferences = context.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -196,11 +212,6 @@ class MainActivity : AppCompatActivity() {
     private fun setRoomIdForPreviousRoom(direction: String?, roomId: Int?) {
         @Suppress("UNCHECKED_CAST")
         (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
-//        val two = any as HashMap<String, Int>
-//        val directionAssociations = roomsGraph[currentRoomId]?.get(1) as HashMap<*, *>
-//        val directionsTypeCast: Type = object : TypeToken<HashMap<String, Int?>>() {}.type
-//        val roomConnectionsIsBack: HashMap<String, Int?> = Gson().fromJson(directionAssociations, directionsTypeCast)
-//        roomsGraph[currentRoomId]?.set(1, roomConnectionsIsBack)
     }
 
     private fun validateRoomConnections(roomId: Int?): HashMap<String, Int?> {
@@ -219,22 +230,5 @@ class MainActivity : AppCompatActivity() {
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
         // TODO: Change cell color depending on condition
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), Color.BLUE)
-    }
-
-
-    companion object {
-        var currentRoomId: Int = 0
-        val roomDetails = RoomDetails()
-        val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
-        val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
-        val cellDetails = CellDetails()
-        val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
-        var authorizationToken: String? = null
-        lateinit var preferences: SharedPreferences
-        fun initialize(context: Context) {
-            if (!Companion::preferences.isInitialized) {
-                preferences = context.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
-            }
-        }
     }
 }
