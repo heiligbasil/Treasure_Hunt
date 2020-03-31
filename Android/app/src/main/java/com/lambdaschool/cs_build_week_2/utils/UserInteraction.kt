@@ -1,6 +1,8 @@
 package com.lambdaschool.cs_build_week_2.utils
 
 import android.content.Context
+import android.view.Gravity
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 
 object UserInteraction {
@@ -21,5 +23,11 @@ object UserInteraction {
             }
             .show()
         return result
+    }
+
+    fun inform(context: Context,message: String) {
+        val toast: Toast = Toast.makeText(context, message, Toast.LENGTH_LONG)
+        toast.setGravity(Gravity.CENTER, 0, 0)
+        toast.show()
     }
 }

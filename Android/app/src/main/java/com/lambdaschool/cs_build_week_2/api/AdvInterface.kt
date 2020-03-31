@@ -2,16 +2,18 @@ package com.lambdaschool.cs_build_week_2.api
 
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
 import retrofit2.Call
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 
-interface AdvInitInterface {
+interface InitInterface {
     @GET("adv/init/")
     fun getRoomInit(): Call<RoomDetails>
 }
 
 interface MoveInterface {
-    @GET("adv/move/")
-    fun getMove(): Call<RoomDetails>
+    @POST("adv/move/")
+    fun getMove(@Body jsonString: String): Call<RoomDetails>
 }
 
 interface TakeInterface {
