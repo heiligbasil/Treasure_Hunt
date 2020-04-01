@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
+import android.os.CountDownTimer
 import androidx.appcompat.app.AppCompatActivity
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.InitInterface
@@ -121,6 +122,7 @@ class MainActivity : AppCompatActivity() {
                     text_room_info.text = responseBody.toString()
                     text_log.append("Code ${response.code()}: Init success!\n")
                     UserInteraction.inform(applicationContext, "${response.code()}: Init success!")
+                    showCooldownTimer()
                 } else {
                     val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
                         ?.substringBefore("Django Version:")}"
@@ -299,4 +301,15 @@ class MainActivity : AppCompatActivity() {
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), "#${Color.BLUE.toHexString()}")
     }
 
+    fun showCooldownTimer() {
+        object : CountDownTimer(30000, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                text_commands_heading.text="seconds remaining: " + millisUntilFinished / 1000
+            }
+
+            override fun onFinish() {
+                text_commands_heading.text="done!"
+            }
+        }.start()
+    }
 }
