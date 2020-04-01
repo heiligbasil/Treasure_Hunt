@@ -218,7 +218,7 @@ class MainActivity : AppCompatActivity() {
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     val message: String =
-                        "Code ${response.code()}: Inventory status success!\n${responseBody?.messages?.joinToString("\n")}"
+                        "Code ${response.code()}: Inventory status success!\n${responseBody.messages?.joinToString("\n")}"
                     text_log.append(message + "\n")
                     UserInteraction.inform(applicationContext, message)
                 } else {
