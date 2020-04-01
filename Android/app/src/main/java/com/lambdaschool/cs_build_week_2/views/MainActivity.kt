@@ -310,10 +310,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun getRoomDirections(roomId: Int?): HashMap<String, Int?> {
-        val roomTrifecta: ArrayList<Any?> = roomsGraph[roomId] ?: arrayListOf()
+    fun getDirectionsFromCurrentRoom(): HashMap<String, Int?> {
+        val roomTrifecta: ArrayList<Any?> = roomsGraph[currentRoomId] ?: arrayListOf()
         @Suppress("UNCHECKED_CAST")
         return roomTrifecta[1] as HashMap<String, Int?>
+    }
+
+    fun getDirectionForRoom(roomId: Int?): String? {
+        val roomDirections: HashMap<String, Int?> = getDirectionsFromCurrentRoom()
+        val directions: Set<String> = roomDirections.filterValues { it == roomId }.keys
+        return if (directions.isNotEmpty())
+            directions.first()
+        else
+            null
     }
 
     private fun validateRoomConnections(roomId: Int?): HashMap<String, Int?> {
@@ -354,8 +363,9 @@ class MainActivity : AppCompatActivity() {
         if (roomId == currentRoomId) {
             UserInteraction.askQuestion(this, "Room Found", "Room #$roomId has been found!", "Okay", null)
         }
-        val roomDirections: HashMap<String, Int?> = getRoomDirections(roomId)
-//        if (roomDirections.containsValue(roomId))
-//        val direction=roomDirections
+        val direction: String = "n"
+        val roomDirections: HashMap<String, Int?> = getDirectionsFromCurrentRoom()
+        val done=getDirectionForRoom(roomId)
+        return
     }
 }
