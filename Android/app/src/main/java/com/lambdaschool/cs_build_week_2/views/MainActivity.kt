@@ -27,6 +27,9 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.lang.reflect.Type
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 
 class MainActivity : AppCompatActivity() {
@@ -61,6 +64,7 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_take.setOnClickListener {
+            moveToSpecificRoomAutomated(466)
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
             if (roomItems.isNotEmpty()) {
@@ -310,14 +314,16 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun getDirectionsFromCurrentRoom(): HashMap<String, Int?> {
-        val roomTrifecta: ArrayList<Any?> = roomsGraph[currentRoomId] ?: arrayListOf()
+    fun getDirectionsFromRoom(roomId: Int?): HashMap<String, Int?> {
+        if (roomId == null)
+            return hashMapOf()
+        val roomTrifecta: ArrayList<Any?> = roomsGraph[roomId] ?: arrayListOf()
         @Suppress("UNCHECKED_CAST")
         return roomTrifecta[1] as HashMap<String, Int?>
     }
 
     fun getDirectionForRoom(roomId: Int?): String? {
-        val roomDirections: HashMap<String, Int?> = getDirectionsFromCurrentRoom()
+        val roomDirections: HashMap<String, Int?> = getDirectionsFromRoom(currentRoomId)
         val directions: Set<String> = roomDirections.filterValues { it == roomId }.keys
         return if (directions.isNotEmpty())
             directions.first()
@@ -359,13 +365,47 @@ class MainActivity : AppCompatActivity() {
         cooldownTimer?.start()
     }
 
-    fun moveToSpecificRoomAutomated(roomId: Int?) {
+    fun moveToSpecificRoomAutomated(roomId: Int) {
+        val pathToRoom: ArrayList<Int?> = bfs(roomId)
+        pathToRoom.forEach {
+            val direction: String? = getDirectionForRoom(it)
+            if (direction==null) {
+                UserInteraction.askQuestion(this, "Room Not Found", "Problem encountered traversing to room #$roomId!", "Okay", null)
+                return@forEach
+            }
+            else {
+//                moveInDirection(direction)
+                cooldownTimer
+            }
+        }
         if (roomId == currentRoomId) {
             UserInteraction.askQuestion(this, "Room Found", "Room #$roomId has been found!", "Okay", null)
         }
-        val direction: String = "n"
-        val roomDirections: HashMap<String, Int?> = getDirectionsFromCurrentRoom()
-        val done=getDirectionForRoom(roomId)
-        return
+//        val direction: String = "n"
+//        val roomDirections: HashMap<String, Int?> = getDirectionsFromRoom(currentRoomId)
+//        val done = getDirectionForRoom(roomId)
+//        return
+    }
+
+    fun bfs(destinationRoom: Int): ArrayList<Int?> {
+        val queue: Queue<ArrayList<Int?>> = LinkedList()
+        queue.add(arrayListOf(currentRoomId))
+        val contemplated: MutableSet<Int?> = mutableSetOf()
+        while (queue.isNotEmpty()) {
+            val path: ArrayList<Int?> = queue.remove()
+            val room: Int? = path.last()
+            if (!contemplated.contains(room)) {
+                contemplated.add(room)
+                if (room == destinationRoom) {
+                    return ArrayList(path.subList(1, path.lastIndex))
+                }
+                getDirectionsFromRoom(room).values.forEach {
+                    val pathCopy: ArrayList<Int?> = path.toCollection(arrayListOf())
+                    pathCopy.add(it)
+                    queue.add(pathCopy)
+                }
+            }
+        }
+        return arrayListOf()
     }
 }
