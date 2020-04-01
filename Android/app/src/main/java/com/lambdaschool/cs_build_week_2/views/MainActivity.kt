@@ -167,19 +167,19 @@ class MainActivity : AppCompatActivity() {
                     val originalRoomId: Int = currentRoomId
                     val responseBody: RoomDetails = response.body() as RoomDetails
                     cooldownAmount = responseBody.cooldown
-                    updateGraphDetails(responseBody)
-                    setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
-                    SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
                     var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Move failure!\n${responseBody.errors?.joinToString("\n")}"
+                    if (responseBody.errors?.isNotEmpty() == true) {
+                        message += "Move failure!\n${responseBody.errors?.joinToString("\n")}"
                     } else {
-                        "Move success!\n${responseBody.messages?.joinToString("\n")}"
+                        message += "Move success!\n${responseBody.messages?.joinToString("\n")}"
+                        updateGraphDetails(responseBody)
+                        setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
+                        SharedPrefs.saveState()
+                        view_map.calculateSize()
                     }
                     text_log.append(message + "\n")
                     UserInteraction.inform(applicationContext, message)
-                    view_map.calculateSize()
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
                     val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
@@ -304,8 +304,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setRoomIdForPreviousRoom(direction: String?, roomId: Int?) {
-        @Suppress("UNCHECKED_CAST")
-        (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
+        if (currentRoomId != roomId) {
+            @Suppress("UNCHECKED_CAST")
+            (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
+        }
     }
 
     private fun validateRoomConnections(roomId: Int?): HashMap<String, Int?> {
