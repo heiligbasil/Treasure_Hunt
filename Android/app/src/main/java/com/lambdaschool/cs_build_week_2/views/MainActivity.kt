@@ -23,10 +23,11 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
+
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        var currentRoomId: Int = 0
+        var currentRoomId: Int = -1
         val roomDetails = RoomDetails()
         val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
@@ -34,7 +35,7 @@ class MainActivity : AppCompatActivity() {
         val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
         var authorizationToken: String? = null
         lateinit var preferences: SharedPreferences
-        fun initialize(context: Context) {
+        fun initializeCompanion(context: Context) {
             if (!Companion::preferences.isInitialized) {
                 preferences = context.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
             }
@@ -45,9 +46,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         title = "Lambda Treasure Hunt"
-        initialize(this)
+        initializeCompanion(this)
         startActivity(Intent(this, InitialActivity::class.java))
-
         button_move_north.setOnClickListener { moveInDirection("n") }
         button_move_south.setOnClickListener { moveInDirection("s") }
         button_move_east.setOnClickListener { moveInDirection("e") }
@@ -59,9 +59,8 @@ class MainActivity : AppCompatActivity() {
             if (roomItems.isNotEmpty()) {
                 val takeTreasure: TakeTreasure = TakeTreasure(roomItems[0])
                 networkPostTake(takeTreasure)
-            }
-            else {
-                UserInteraction.inform(this,"Nothing to take!")
+            } else {
+                UserInteraction.inform(this, "Nothing to take!")
             }
         }
         button_drop.setOnClickListener {}
@@ -97,12 +96,6 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun moveInDirection(direction: String) {
-        val nextRoom: String? = anticipateNextRoom(direction)
-        val moveWisely: MoveWisely = MoveWisely(direction, nextRoom)
-        networkPostMove(moveWisely)
-    }
-
     private fun networkGetInit() {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
@@ -116,22 +109,10 @@ class MainActivity : AppCompatActivity() {
         val service: InitInterface = retrofit.create(InitInterface::class.java)
         val call: Call<RoomDetails> = service.getRoomInit()
         call.enqueue(object : Callback<RoomDetails> {
-            /**
-             * Invoked when a network exception occurred talking to the server or when an unexpected
-             * exception occurred creating the request or processing the response.
-             */
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
-            /**
-             * Invoked for a received HTTP response.
-             *
-             *
-             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
-             * Call [Response.isSuccessful] to determine if the response indicates success.
-             */
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails? = response.body()
@@ -164,33 +145,27 @@ class MainActivity : AppCompatActivity() {
         val service: MoveInterface = retrofit.create(MoveInterface::class.java)
         val call: Call<RoomDetails> = service.postMove(moveWisely)
         call.enqueue(object : Callback<RoomDetails> {
-            /**
-             * Invoked when a network exception occurred talking to the server or when an unexpected
-             * exception occurred creating the request or processing the response.
-             */
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
-            /**
-             * Invoked for a received HTTP response.
-             *
-             *
-             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
-             * Call [Response.isSuccessful] to determine if the response indicates success.
-             */
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val originalRoomId: Int = currentRoomId
-                    val responseBody: RoomDetails? = response.body()
+                    val responseBody: RoomDetails = response.body() as RoomDetails
                     updateGraphDetails(responseBody)
                     setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
-                    val message: String = "Code ${response.code()}: Move success!\n${responseBody?.messages?.joinToString("\n")}"
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Move failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Move success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
                     text_log.append(message + "\n")
                     UserInteraction.inform(applicationContext, message)
+                    view_map.calculateSize()
                 } else {
                     val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
                         ?.substringBefore("Django Version:")}"
@@ -215,22 +190,10 @@ class MainActivity : AppCompatActivity() {
         val service: StatusInterface = retrofit.create(StatusInterface::class.java)
         val call: Call<Status> = service.postStatus()
         call.enqueue(object : Callback<Status> {
-            /**
-             * Invoked when a network exception occurred talking to the server or when an unexpected
-             * exception occurred creating the request or processing the response.
-             */
             override fun onFailure(call: Call<Status>, t: Throwable) {
                 text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
-            /**
-             * Invoked for a received HTTP response.
-             *
-             *
-             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
-             * Call [Response.isSuccessful] to determine if the response indicates success.
-             */
             override fun onResponse(call: Call<Status>, response: Response<Status>) {
                 if (response.isSuccessful) {
                     val responseBody: Status? = response.body()
@@ -263,27 +226,20 @@ class MainActivity : AppCompatActivity() {
         val service: TakeInterface = retrofit.create(TakeInterface::class.java)
         val call: Call<RoomDetails> = service.postTake(takeTreasure)
         call.enqueue(object : Callback<RoomDetails> {
-            /**
-             * Invoked when a network exception occurred talking to the server or when an unexpected
-             * exception occurred creating the request or processing the response.
-             */
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
-            /**
-             * Invoked for a received HTTP response.
-             *
-             *
-             * Note: An HTTP response may still indicate an application-level failure such as a 404 or 500.
-             * Call [Response.isSuccessful] to determine if the response indicates success.
-             */
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
-                    val responseBody: RoomDetails? = response.body()
+                    val responseBody: RoomDetails = response.body() as RoomDetails
                     text_room_info.text = responseBody.toString()
-                    val message: String = "Code ${response.code()}: Take success!\n${responseBody?.messages?.joinToString("\n")}"
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Take failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Take success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
                     text_log.append(message + "\n")
                     UserInteraction.inform(applicationContext, message)
                 } else {
@@ -294,6 +250,16 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun moveInDirection(direction: String) {
+        if (roomsGraph.isNotEmpty() && currentRoomId != -1) {
+            val nextRoom: String? = anticipateNextRoom(direction)
+            val moveWisely: MoveWisely = MoveWisely(direction, nextRoom)
+            networkPostMove(moveWisely)
+        } else {
+            UserInteraction.inform(this, "Please do a GET Init first...")
+        }
     }
 
     private fun updateGraphDetails(responseBody: RoomDetails?) {
@@ -330,6 +296,7 @@ class MainActivity : AppCompatActivity() {
         val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
         // TODO: Change cell color depending on condition
-        return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), Color.BLUE.toHexString())
+        return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), "#${Color.BLUE.toHexString()}")
     }
+
 }

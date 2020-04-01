@@ -7,6 +7,9 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import com.lambdaschool.cs_build_week_2.models.CellDetails
+import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.currentRoomId
+import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.roomsGraph
 
 class AdventureMapView @JvmOverloads constructor(
     context: Context,
@@ -15,7 +18,7 @@ class AdventureMapView @JvmOverloads constructor(
     defStyleRes: Int = 0
 ) : View(context, attrs, defStyleAttr, defStyleRes) {
 
-    private var numColumns = 25
+    private var numColumns = 30
     private var numRows = 30
     private var cellWidth = 0
     private var cellHeight = 0
@@ -60,11 +63,14 @@ class AdventureMapView @JvmOverloads constructor(
         calculateSize()
     }
 
-    private fun calculateSize() {
+    fun calculateSize() {
+        if (roomsGraph.isNotEmpty())
+            numRows=roomsGraph.size
+
         cellHeight = height / numRows
         cellWidth = cellHeight
-        cellChecked = Array(numColumns) { BooleanArray(numRows) }
-        cellColors = Array(numColumns) { IntArray(numRows) }
+//        cellChecked = Array(numColumns) { BooleanArray(numRows) }
+//        cellColors = Array(numColumns) { IntArray(numRows) }
         invalidate()
     }
 
@@ -74,60 +80,69 @@ class AdventureMapView @JvmOverloads constructor(
      * @param canvas the canvas on which the background will be drawn
      */
     override fun onDraw(canvas: Canvas) {
-        val width = width
-        val height = height
-        for (i in 0 until numColumns) {
-            for (j in 0 until numRows) {
-                if (cellChecked[i][j]) {
-                    if (cellColors[i][j] == 0)
-                        cellPaint.color = Color.MAGENTA
-                    else
-                        cellPaint.color = cellColors[i][j]
-                    canvas.drawRect(
-                        i * cellWidth.toFloat(), j * cellHeight.toFloat(),
-                        (i + 1) * cellWidth.toFloat(), (j + 1) * cellHeight.toFloat(),
-                        cellPaint
-                    )
-                    canvas.drawRect(
-                        i * cellWidth.toFloat(), j * cellHeight.toFloat(),
-                        (i + 1) * cellWidth.toFloat(), (j + 1) * cellHeight.toFloat(),
-                        cellPaintBorder
-                    )
-                    // Draw "North" door
-                    canvas.drawLine(
-                        (i * cellWidth.toFloat()) + 15,
-                        j * cellHeight.toFloat(),
-                        ((i + 1) * cellWidth.toFloat()) - 15,
-                        j * cellHeight.toFloat(),
-                        cellPaintDoor
-                    )
-                    // Draw "South" door
-                    canvas.drawLine(
-                        (i * cellWidth.toFloat()) + 15,
-                        (j + 1) * cellHeight.toFloat(),
-                        ((i + 1) * cellWidth.toFloat()) - 15,
-                        (j + 1) * cellHeight.toFloat(),
-                        cellPaintDoor
-                    )
-                    // Draw "West" door
-                    canvas.drawLine(
-                        i * cellWidth.toFloat(),
-                        (j * cellHeight.toFloat()) + 15,
-                        i * cellWidth.toFloat(),
-                        ((j + 1) * cellHeight.toFloat()) - 15,
-                        cellPaintDoor
-                    )
-                    // Draw "East" door
-                    canvas.drawLine(
-                        (i + 1) * cellWidth.toFloat(),
-                        (j * cellHeight.toFloat()) + 15,
-                        (i + 1) * cellWidth.toFloat(),
-                        ((j + 1) * cellHeight.toFloat()) - 15,
-                        cellPaintDoor
-                    )
+//        val width = width
+//        val height = height
+        for (y in 0 until numColumns) {
+            for (x in 0 until numRows) {
+//                if (cellChecked[i][j]) {
+//                    if (cellColors[i][j] == 0)
+//                        cellPaint.color = Color.MAGENTA
+//                    else
+//                        cellPaint.color = cellColors[i][j]
+//        if (roomsGraph.isNotEmpty() && currentRoomId != -1) {
+        /*roomsGraph.forEach {
+            val roomId: Int? = it.key
+            val cellDetails: CellDetails = roomsGraph[roomId]?.get(2) as CellDetails
+            val y: Int = cellDetails.gridY
+            val x: Int = cellDetails.gridX
+            cellPaint.color = Color.parseColor(cellDetails.color)*/
+            canvas.drawRect(
+                y * cellWidth.toFloat(), x * cellHeight.toFloat(),
+                (y + 1) * cellWidth.toFloat(), (x + 1) * cellHeight.toFloat(),
+                cellPaint
+            )
+            canvas.drawRect(
+                y * cellWidth.toFloat(), x * cellHeight.toFloat(),
+                (y + 1) * cellWidth.toFloat(), (x + 1) * cellHeight.toFloat(),
+                cellPaintBorder
+            )
+            // Draw "North" door
+            canvas.drawLine(
+                (y * cellWidth.toFloat()) + 15,
+                x * cellHeight.toFloat(),
+                ((y + 1) * cellWidth.toFloat()) - 15,
+                x * cellHeight.toFloat(),
+                cellPaintDoor
+            )
+            // Draw "South" door
+            canvas.drawLine(
+                (y * cellWidth.toFloat()) + 15,
+                (x + 1) * cellHeight.toFloat(),
+                ((y + 1) * cellWidth.toFloat()) - 15,
+                (x + 1) * cellHeight.toFloat(),
+                cellPaintDoor
+            )
+            // Draw "West" door
+            canvas.drawLine(
+                y * cellWidth.toFloat(),
+                (x * cellHeight.toFloat()) + 15,
+                y * cellWidth.toFloat(),
+                ((x + 1) * cellHeight.toFloat()) - 15,
+                cellPaintDoor
+            )
+            // Draw "East" door
+            canvas.drawLine(
+                (y + 1) * cellWidth.toFloat(),
+                (x * cellHeight.toFloat()) + 15,
+                (y + 1) * cellWidth.toFloat(),
+                ((x + 1) * cellHeight.toFloat()) - 15,
+                cellPaintDoor
+            )
 
-                    canvas.drawText("500", (i + .05F) * cellWidth.toFloat(), (j + .7F) * cellHeight.toFloat(), cellPaintText)
-                }
+            canvas.drawText("500", (y + .05F) * cellWidth.toFloat(), (x + .7F) * cellHeight.toFloat(), cellPaintText)
+//        }
+//        }
+//                }
             }
         }
     }
