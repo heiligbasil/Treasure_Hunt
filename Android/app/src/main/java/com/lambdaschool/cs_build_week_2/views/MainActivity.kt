@@ -310,6 +310,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun getRoomDirections(roomId: Int?): HashMap<String, Int?> {
+        val roomTrifecta: ArrayList<Any?> = roomsGraph[roomId] ?: arrayListOf()
+        @Suppress("UNCHECKED_CAST")
+        return roomTrifecta[1] as HashMap<String, Int?>
+    }
+
     private fun validateRoomConnections(roomId: Int?): HashMap<String, Int?> {
         val extractedRoomDetailsExits = (roomsGraph[roomId]?.get(0) as RoomDetails).exits
         val extractedRoomConnections = roomsGraph[roomId]?.get(1) as HashMap<*, *>
@@ -342,5 +348,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
         cooldownTimer?.start()
+    }
+
+    fun moveToSpecificRoomAutomated(roomId: Int?) {
+        if (roomId == currentRoomId) {
+            UserInteraction.askQuestion(this, "Room Found", "Room #$roomId has been found!", "Okay", null)
+        }
+        val roomDirections: HashMap<String, Int?> = getRoomDirections(roomId)
+//        if (roomDirections.containsValue(roomId))
+//        val direction=roomDirections
     }
 }
