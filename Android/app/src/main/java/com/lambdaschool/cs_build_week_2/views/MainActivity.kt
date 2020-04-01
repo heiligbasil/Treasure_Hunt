@@ -64,7 +64,7 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_take.setOnClickListener {
-            moveToSpecificRoomAutomated(466)
+            moveToSpecificRoomAutomated(63)
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
             if (roomItems.isNotEmpty()) {
@@ -324,7 +324,9 @@ class MainActivity : AppCompatActivity() {
 
     fun getDirectionForRoom(roomId: Int?): String? {
         val roomDirections: HashMap<String, Int?> = getDirectionsFromRoom(currentRoomId)
-        val directions: Set<String> = roomDirections.filterValues { it == roomId }.keys
+        val directions: Set<String> = roomDirections.filterValues {
+            it == roomId
+        }.keys
         return if (directions.isNotEmpty())
             directions.first()
         else
@@ -369,13 +371,12 @@ class MainActivity : AppCompatActivity() {
         val pathToRoom: ArrayList<Int?> = bfs(roomId)
         pathToRoom.forEach {
             val direction: String? = getDirectionForRoom(it)
-            if (direction==null) {
+            if (direction == null) {
                 UserInteraction.askQuestion(this, "Room Not Found", "Problem encountered traversing to room #$roomId!", "Okay", null)
                 return@forEach
-            }
-            else {
-//                moveInDirection(direction)
-                cooldownTimer
+            } else {
+                moveInDirection(direction)
+                Thread.sleep(cooldownAmount?.times(1000)?.toLong() ?: 1000)
             }
         }
         if (roomId == currentRoomId) {
@@ -397,7 +398,7 @@ class MainActivity : AppCompatActivity() {
             if (!contemplated.contains(room)) {
                 contemplated.add(room)
                 if (room == destinationRoom) {
-                    return ArrayList(path.subList(1, path.lastIndex))
+                    return ArrayList(path.subList(1, path.size))
                 }
                 getDirectionsFromRoom(room).values.forEach {
                     val pathCopy: ArrayList<Int?> = path.toCollection(arrayListOf())
