@@ -6,7 +6,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 
 object UserInteraction {
-    fun askQuestion(context: Context, title: String, message: String, positiveButton: String, negativeButton: String): Boolean {
+    fun askQuestion(context: Context, title: String, message: String, positiveButton: String, negativeButton: String?): Boolean {
         var result: Boolean = false
         AlertDialog.Builder(context, android.R.style.Theme_Material_Dialog_Alert)
             .setTitle(title)

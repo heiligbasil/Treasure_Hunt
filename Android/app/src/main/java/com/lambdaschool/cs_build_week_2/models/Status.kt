@@ -59,4 +59,26 @@ class Status {
     @SerializedName("messages")
     @Expose
     var messages: List<String>? = null
+
+    /**
+     * Returns a string representation of the object.
+     */
+    override fun toString(): String {
+        val sb: StringBuilder = java.lang.StringBuilder()
+        sb.appendln("Inventory for: $name")
+        sb.appendln("Cooldown: $cooldown")
+        sb.appendln("Encumbrance: $encumbrance")
+        sb.appendln("Strength: $strength")
+        sb.appendln("Speed: $speed")
+        sb.appendln("Gold: $gold")
+        sb.appendln("Bodywear: $bodywear")
+        sb.appendln("Footwear: $footwear")
+        sb.appendln("Inventory: ${inventory?.joinToString()}")
+        sb.appendln("Abilities: ${abilities?.joinToString()}")
+        sb.appendln("Status: ${status?.joinToString()}")
+        sb.appendln("Has mined?: $hasMined")
+        sb.appendln("Errors: ${errors?.joinToString()}")
+        sb.appendln("Messages: ${messages?.joinToString()}")
+        return sb.toString()
+    }
 }

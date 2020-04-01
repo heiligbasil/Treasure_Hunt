@@ -14,6 +14,7 @@ class InitialActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_initial)
         title = "Lambda Treasure Hunt - Token"
+        edit_token.showSoftInputOnFocus = false
         button_begin.setOnClickListener {
             if (edit_token.text.length == 40) {
                 MainActivity.authorizationToken = edit_token.text.toString()
