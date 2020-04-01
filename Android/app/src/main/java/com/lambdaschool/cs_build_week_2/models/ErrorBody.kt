@@ -10,7 +10,7 @@ class ErrorBody {
     override fun toString(): String {
         val sb: StringBuilder = java.lang.StringBuilder()
         sb.appendln("Cooldown: $cooldown")
-        sb.appendln("Errors: ${errors?.joinToString()}")
+        sb.append("Errors: ${errors?.joinToString()}")
         return sb.toString()
     }
 }
