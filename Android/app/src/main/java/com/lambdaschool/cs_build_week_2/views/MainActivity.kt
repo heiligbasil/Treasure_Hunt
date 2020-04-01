@@ -6,7 +6,10 @@ import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.InitInterface
 import com.lambdaschool.cs_build_week_2.api.MoveInterface
@@ -23,11 +26,14 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.lang.reflect.Type
 
 
 class MainActivity : AppCompatActivity() {
 
     companion object {
+        var cooldownTimer: CountDownTimer? = null
+        var cooldownAmount: Double? = 0.0
         var currentRoomId: Int = -1
         val roomDetails = RoomDetails()
         val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
@@ -114,21 +120,25 @@ class MainActivity : AppCompatActivity() {
                 text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
-                    val responseBody: RoomDetails? = response.body()
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
                     updateGraphDetails(responseBody)
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
                     text_log.append("Code ${response.code()}: Init success!\n")
                     UserInteraction.inform(applicationContext, "${response.code()}: Init success!")
-                    showCooldownTimer()
                 } else {
-                    val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
-                        ?.substringBefore("Django Version:")}"
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
                     UserInteraction.inform(applicationContext, errorText)
                 }
+                showCooldownTimer()
             }
         })
     }
@@ -151,10 +161,12 @@ class MainActivity : AppCompatActivity() {
                 text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val originalRoomId: Int = currentRoomId
                     val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
                     updateGraphDetails(responseBody)
                     setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
                     SharedPrefs.saveState()
@@ -169,11 +181,14 @@ class MainActivity : AppCompatActivity() {
                     UserInteraction.inform(applicationContext, message)
                     view_map.calculateSize()
                 } else {
-                    val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
-                        ?.substringBefore("Django Version:")}"
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
                     UserInteraction.inform(applicationContext, errorText)
                 }
+                showCooldownTimer()
             }
         })
     }
@@ -196,20 +211,25 @@ class MainActivity : AppCompatActivity() {
                 text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<Status>, response: Response<Status>) {
                 if (response.isSuccessful) {
-                    val responseBody: Status? = response.body()
+                    val responseBody: Status = response.body() as Status
+                    cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     val message: String =
                         "Code ${response.code()}: Inventory status success!\n${responseBody?.messages?.joinToString("\n")}"
                     text_log.append(message + "\n")
                     UserInteraction.inform(applicationContext, message)
                 } else {
-                    val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
-                        ?.substringBefore("Django Version:")}"
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
                     UserInteraction.inform(applicationContext, errorText)
                 }
+                showCooldownTimer()
             }
         })
     }
@@ -232,9 +252,11 @@ class MainActivity : AppCompatActivity() {
                 text_log.append("${t.message}\n")
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     var message: String = "Code ${response.code()}: "
                     message += if (responseBody.errors?.isNotEmpty() == true) {
@@ -245,11 +267,14 @@ class MainActivity : AppCompatActivity() {
                     text_log.append(message + "\n")
                     UserInteraction.inform(applicationContext, message)
                 } else {
-                    val errorText = "${response.message()} ${response.code()}: ${response.errorBody()?.string()
-                        ?.substringBefore("Django Version:")}"
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
                     UserInteraction.inform(applicationContext, errorText)
                 }
+                showCooldownTimer()
             }
         })
     }
@@ -302,14 +327,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showCooldownTimer() {
-        object : CountDownTimer(30000, 1000) {
+        cooldownTimer?.cancel()
+        frame_cooldown.visibility = View.VISIBLE
+        cooldownTimer = object : CountDownTimer((cooldownAmount?.times(1000))?.toLong() ?: 1000, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                text_commands_heading.text="seconds remaining: " + millisUntilFinished / 1000
+                val timerText = "CD: ${millisUntilFinished / 1000}"
+                text_cooldown.text = timerText
             }
 
             override fun onFinish() {
-                text_commands_heading.text="done!"
+                frame_cooldown.visibility = View.INVISIBLE
             }
-        }.start()
+        }
+        cooldownTimer?.start()
     }
 }
