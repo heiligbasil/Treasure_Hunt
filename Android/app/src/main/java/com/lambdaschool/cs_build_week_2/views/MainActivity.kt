@@ -333,7 +333,7 @@ class MainActivity : AppCompatActivity() {
         frame_cooldown.visibility = View.VISIBLE
         cooldownTimer = object : CountDownTimer((cooldownAmount?.times(1000))?.toLong() ?: 1000, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                val timerText = "CD: ${millisUntilFinished / 1000}"
+                val timerText = "CD: " + "${(millisUntilFinished / 1000)}".padStart(2, '0')
                 text_cooldown.text = timerText
             }
 
