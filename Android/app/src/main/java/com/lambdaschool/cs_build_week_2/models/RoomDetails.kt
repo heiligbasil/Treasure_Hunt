@@ -68,7 +68,7 @@ class RoomDetails {
         sb.appendln("Exits: ${exits?.joinToString()}")
         sb.appendln("Cooldown: $cooldown")
         sb.appendln("Errors: ${errors?.joinToString()}")
-        sb.appendln("Messages: ${messages?.joinToString()}")
+        sb.append("Messages: ${messages?.joinToString()}")
         return sb.toString()
     }
 }

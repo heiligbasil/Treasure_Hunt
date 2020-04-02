@@ -78,7 +78,7 @@ class Status {
         sb.appendln("Status: ${status?.joinToString()}")
         sb.appendln("Has mined?: $hasMined")
         sb.appendln("Errors: ${errors?.joinToString()}")
-        sb.appendln("Messages: ${messages?.joinToString()}")
+        sb.append("Messages: ${messages?.joinToString()}")
         return sb.toString()
     }
 }

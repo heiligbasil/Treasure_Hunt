@@ -3,7 +3,7 @@ package com.lambdaschool.cs_build_week_2.api
 import com.lambdaschool.cs_build_week_2.models.MoveWisely
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
 import com.lambdaschool.cs_build_week_2.models.Status
-import com.lambdaschool.cs_build_week_2.models.TakeTreasure
+import com.lambdaschool.cs_build_week_2.models.Treasure
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -21,7 +21,7 @@ interface MoveInterface {
 
 interface TakeInterface {
     @POST("adv/take/")
-    fun postTake(@Body takeTreasure: TakeTreasure): Call<RoomDetails>
+    fun postTake(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface DropInterface {
@@ -35,13 +35,13 @@ interface StatusInterface {
 }
 
 interface BuyInterface {
-    @GET("adv/buy/")
-    fun getBuy(): Call<RoomDetails>
+    @POST("adv/buy/")
+    fun postBuy(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface SellInterface {
-    @GET("adv/sell/")
-    fun getSell(): Call<RoomDetails>
+    @POST("adv/sell/")
+    fun postSell(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface WearInterface {
@@ -55,8 +55,8 @@ interface UndressInterface {
 }
 
 interface ExamineInterface {
-    @GET("adv/examine/")
-    fun getExamine(): Call<RoomDetails>
+    @POST("adv/examine/")
+    fun postExamine(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface ChangeNameInterface {
@@ -65,8 +65,8 @@ interface ChangeNameInterface {
 }
 
 interface PrayInterface {
-    @GET("adv/pray/")
-    fun getPray(): Call<RoomDetails>
+    @POST("adv/pray/")
+    fun postPray(): Call<RoomDetails>
 }
 
 interface FlyInterface {
