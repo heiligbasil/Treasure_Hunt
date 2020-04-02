@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
+import android.os.Handler
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
@@ -36,9 +37,14 @@ import kotlin.collections.HashMap
 class MainActivity : AppCompatActivity() {
 
     companion object {
+        val traversalTimer = Timer()
+        val timerHandler = Handler()
         var cooldownTimer: CountDownTimer? = null
         var cooldownAmount: Double? = 0.0
+        var automatedPath: ArrayList<Int?> = arrayListOf()
         var currentRoomId: Int = -1
+        var responseMessage: String = ""
+        var responseRoomInfo: String = ""
         val roomDetails = RoomDetails()
         val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
@@ -74,7 +80,9 @@ class MainActivity : AppCompatActivity() {
                 UserInteraction.inform(this, "Nothing to take!")
             }
         }
-        button_drop.setOnClickListener { moveToSpecificRoomAutomated(472) }
+        button_drop.setOnClickListener {
+            moveToSpecificRoomAutomated(472)
+        }
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {}
         button_sell.setOnClickListener {
@@ -160,40 +168,36 @@ class MainActivity : AppCompatActivity() {
             .build()
         val service: MoveInterface = retrofit.create(MoveInterface::class.java)
         val call: Call<RoomDetails> = service.postMove(moveWisely)
-        var messageText: String = ""
+
         var executeResponse: Response<RoomDetails>? = null
         try {
             executeResponse = call.execute()
         } catch (ioe: IOException) {
-            messageText = "IOException: ${ioe.message}\n"
+            responseMessage = "IOException: ${ioe.message}\n"
         } catch (rte: RuntimeException) {
-            messageText = "RuntimeException: ${rte.message}\n"
+            responseMessage = "RuntimeException: ${rte.message}\n"
         }
-        runOnUiThread {
-            if (executeResponse?.isSuccessful == true) {
-                val originalRoomId: Int = currentRoomId
-                val responseAsRoomDetails: RoomDetails = executeResponse.body() as RoomDetails
-                cooldownAmount = responseAsRoomDetails.cooldown
-                text_room_info.text = responseAsRoomDetails.toString()
-                messageText = "Code ${executeResponse.code()}: "
-                if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
-                    messageText += "Move failure!\n${responseAsRoomDetails.errors?.joinToString("\n")}"
-                } else {
-                    messageText += "Move success!\n${responseAsRoomDetails.messages?.joinToString("\n")}"
-                    updateGraphDetails(responseAsRoomDetails)
-                    setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
-                    SharedPrefs.saveState()
-                    view_map.calculateSize()
-                }
+
+        if (executeResponse?.isSuccessful == true) {
+            val originalRoomId: Int = currentRoomId
+            val responseAsRoomDetails: RoomDetails = executeResponse.body() as RoomDetails
+            responseRoomInfo = responseAsRoomDetails.toString()
+            cooldownAmount = responseAsRoomDetails.cooldown
+            responseMessage = "Code ${executeResponse.code()}: "
+            if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
+                responseMessage += "Move failure (\"${moveWisely.direction}\")\n${responseAsRoomDetails.errors?.joinToString("\n")}"
             } else {
-                val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                val errorBody: ErrorBody = Gson().fromJson(executeResponse?.errorBody()?.string(), errorBodyTypeCast)
-                messageText = "${executeResponse?.message()} ${executeResponse?.code()}:\n$errorBody"
-                cooldownAmount = errorBody.cooldown
+                responseMessage += "Move success!\n${responseAsRoomDetails.messages?.joinToString("\n")}"
+                updateGraphDetails(responseAsRoomDetails)
+                setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
+                SharedPrefs.saveState()
+//                view_map.calculateSize()
             }
-            text_log.append(messageText)
-            UserInteraction.inform(applicationContext, messageText)
-            showCooldownTimer()
+        } else {
+            val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+            val errorBody: ErrorBody = Gson().fromJson(executeResponse?.errorBody()?.string(), errorBodyTypeCast)
+            responseMessage = "${executeResponse?.message()} ${executeResponse?.code()}:\n$errorBody"
+            cooldownAmount = errorBody.cooldown
         }
     }
 
@@ -293,7 +297,10 @@ class MainActivity : AppCompatActivity() {
             val networkThread = Thread(networkRunnable)
             networkThread.start()
             networkThread.join()
-            currentRoomId
+            text_room_info.text = responseRoomInfo
+            text_log.append(responseMessage)
+            UserInteraction.inform(applicationContext, responseMessage)
+            showCooldownTimer()
         } else {
             UserInteraction.inform(this, "Please do a GET Init first...")
         }
@@ -320,7 +327,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun getDirectionsFromRoom(roomId: Int?): HashMap<String, Int?> {
+    private fun getDirectionsFromRoom(roomId: Int?): HashMap<String, Int?> {
         if (roomId == null)
             return hashMapOf()
         val roomTrifecta: ArrayList<Any?> = roomsGraph[roomId] ?: arrayListOf()
@@ -328,7 +335,7 @@ class MainActivity : AppCompatActivity() {
         return roomTrifecta[1] as HashMap<String, Int?>
     }
 
-    fun getDirectionForRoom(roomId: Int?): String? {
+    private fun getDirectionForRoom(roomId: Int?): String? {
         val roomDirections: HashMap<String, Int?> = getDirectionsFromRoom(currentRoomId)
         val directions: Set<String> = roomDirections.filterValues {
             it == roomId
@@ -357,7 +364,7 @@ class MainActivity : AppCompatActivity() {
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), "#${Color.BLUE.toHexString()}")
     }
 
-    fun showCooldownTimer() {
+    private fun showCooldownTimer() {
         cooldownTimer?.cancel()
         frame_cooldown.visibility = View.VISIBLE
         cooldownTimer = object : CountDownTimer((cooldownAmount?.times(1000))?.toLong() ?: 1000, 1000) {
@@ -368,33 +375,70 @@ class MainActivity : AppCompatActivity() {
 
             override fun onFinish() {
                 frame_cooldown.visibility = View.INVISIBLE
+                cooldownAmount = 0.0
             }
         }
         cooldownTimer?.start()
     }
 
-    fun moveToSpecificRoomAutomated(roomId: Int) {
-        val pathToRoom: ArrayList<Int?> = bfs(roomId)
+    private fun runNextAutomatedStep() {
+        timerHandler.post(myRunnable)
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    val myRunnable = Runnable {
+        val destinationRoom: Int? = automatedPath.last()
+        val direction: String? = getDirectionForRoom(automatedPath.removeFirst())
+        if (direction == null) {
+            UserInteraction.askQuestion(
+                this, "Room Not Found", "Problem encountered traversing to room #$destinationRoom!", "Okay", null
+            )
+        } else {
+            when (direction) {
+                "n" -> button_move_north.performClick()
+                "s" -> button_move_south.performClick()
+                "e" -> button_move_east.performClick()
+                "w" -> button_move_west.performClick()
+            }
+        }
+        if (automatedPath.isEmpty()) {
+            traversalTimer.cancel()
+        }
+        if (destinationRoom == currentRoomId) {
+            UserInteraction.askQuestion(this, "Room Found", "Room #$destinationRoom has been found!", "Okay", null)
+        }
+    }
+
+    private fun moveToSpecificRoomAutomated(roomId: Int) {
+        automatedPath = bfs(roomId)
+        traversalTimer.schedule(object : TimerTask() {
+            override fun run() {
+                runNextAutomatedStep()
+            }
+        }, 0, 16000)
+
+        /*val pathToRoom: ArrayList<Int?> = bfs(roomId)
         pathToRoom.forEach {
             val direction: String? = getDirectionForRoom(it)
             if (direction == null) {
                 UserInteraction.askQuestion(this, "Room Not Found", "Problem encountered traversing to room #$roomId!", "Okay", null)
             } else {
-                moveInDirection(direction)
-//                recreate()
+                when (direction) {
+                    "n" -> button_move_north.performClick()
+                    "s" -> button_move_south.performClick()
+                    "e" -> button_move_east.performClick()
+                    "w" -> button_move_west.performClick()
+                }
+                //moveInDirection(direction)
                 Thread.sleep(cooldownAmount?.times(1000)?.toLong() ?: 1000)
             }
         }
         if (roomId == currentRoomId) {
             UserInteraction.askQuestion(this, "Room Found", "Room #$roomId has been found!", "Okay", null)
-        }
-//        val direction: String = "n"
-//        val roomDirections: HashMap<String, Int?> = getDirectionsFromRoom(currentRoomId)
-//        val done = getDirectionForRoom(roomId)
-//        return
+        }*/
     }
 
-    fun bfs(destinationRoom: Int): ArrayList<Int?> {
+    private fun bfs(destinationRoom: Int): ArrayList<Int?> {
         val queue: Queue<ArrayList<Int?>> = LinkedList()
         queue.add(arrayListOf(currentRoomId))
         val contemplated: MutableSet<Int?> = mutableSetOf()
