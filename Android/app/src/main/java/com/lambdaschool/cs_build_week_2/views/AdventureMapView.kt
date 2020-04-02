@@ -11,8 +11,8 @@ import com.lambdaschool.cs_build_week_2.models.CellDetails
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.roomsGraph
-import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 
 class AdventureMapView @JvmOverloads constructor(
     context: Context,
@@ -211,13 +211,14 @@ class AdventureMapView @JvmOverloads constructor(
      */
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            val column = (event.x / cellWidth).toInt()
-            val row = (event.y / cellHeight).toInt()
-            val selectedCell: Int = cellsGrid[column - 10][row + 30]
+            val column = max((event.x / cellWidth).toInt() - 10, 0)
+            val row = min((event.y / cellHeight).toInt() + 30, cellsGrid.size)
+            val selectedCell: Int = cellsGrid[column][row]
             if (selectedCell > -1) {
                 val roomDetails: RoomDetails = (roomsGraph[selectedCell]?.get(0) as RoomDetails)
                 UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Okay", null)
             }
+            performClick()
         }
         return true
     }

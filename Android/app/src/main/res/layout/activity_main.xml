@@ -5,9 +5,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-
+    android:background="@drawable/stone"
     tools:context=".views.MainActivity">
-    <!--    android:background="@drawable/stone"-->
+
     <FrameLayout
         android:id="@+id/frame_room_info"
         android:layout_width="120dp"

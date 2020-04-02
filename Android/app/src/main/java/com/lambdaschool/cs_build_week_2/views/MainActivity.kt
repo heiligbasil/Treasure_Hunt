@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         button_drop.setOnClickListener {
-            moveToSpecificRoomAutomated(63)
+            moveToSpecificRoomAutomated(486)
         }
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {
