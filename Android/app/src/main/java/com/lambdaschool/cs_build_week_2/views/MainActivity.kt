@@ -26,6 +26,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 import java.lang.reflect.Type
 import java.util.*
 import kotlin.collections.ArrayList
@@ -64,7 +65,6 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_take.setOnClickListener {
-            moveToSpecificRoomAutomated(63)
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
             if (roomItems.isNotEmpty()) {
@@ -74,7 +74,7 @@ class MainActivity : AppCompatActivity() {
                 UserInteraction.inform(this, "Nothing to take!")
             }
         }
-        button_drop.setOnClickListener {}
+        button_drop.setOnClickListener { moveToSpecificRoomAutomated(472) }
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {}
         button_sell.setOnClickListener {
@@ -160,41 +160,41 @@ class MainActivity : AppCompatActivity() {
             .build()
         val service: MoveInterface = retrofit.create(MoveInterface::class.java)
         val call: Call<RoomDetails> = service.postMove(moveWisely)
-        call.enqueue(object : Callback<RoomDetails> {
-            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
-            }
-
-            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
-                if (response.isSuccessful) {
-                    val originalRoomId: Int = currentRoomId
-                    val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    if (responseBody.errors?.isNotEmpty() == true) {
-                        message += "Move failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        message += "Move success!\n${responseBody.messages?.joinToString("\n")}"
-                        updateGraphDetails(responseBody)
-                        setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
-                        SharedPrefs.saveState()
-                        view_map.calculateSize()
-                    }
-                    text_log.append(message + "\n")
-                    UserInteraction.inform(applicationContext, message)
+        var messageText: String = ""
+        var executeResponse: Response<RoomDetails>? = null
+        try {
+            executeResponse = call.execute()
+        } catch (ioe: IOException) {
+            messageText = "IOException: ${ioe.message}\n"
+        } catch (rte: RuntimeException) {
+            messageText = "RuntimeException: ${rte.message}\n"
+        }
+        runOnUiThread {
+            if (executeResponse?.isSuccessful == true) {
+                val originalRoomId: Int = currentRoomId
+                val responseAsRoomDetails: RoomDetails = executeResponse.body() as RoomDetails
+                cooldownAmount = responseAsRoomDetails.cooldown
+                text_room_info.text = responseAsRoomDetails.toString()
+                messageText = "Code ${executeResponse.code()}: "
+                if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
+                    messageText += "Move failure!\n${responseAsRoomDetails.errors?.joinToString("\n")}"
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    UserInteraction.inform(applicationContext, errorText)
+                    messageText += "Move success!\n${responseAsRoomDetails.messages?.joinToString("\n")}"
+                    updateGraphDetails(responseAsRoomDetails)
+                    setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
+                    SharedPrefs.saveState()
+                    view_map.calculateSize()
                 }
-                showCooldownTimer()
+            } else {
+                val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                val errorBody: ErrorBody = Gson().fromJson(executeResponse?.errorBody()?.string(), errorBodyTypeCast)
+                messageText = "${executeResponse?.message()} ${executeResponse?.code()}:\n$errorBody"
+                cooldownAmount = errorBody.cooldown
             }
-        })
+            text_log.append(messageText)
+            UserInteraction.inform(applicationContext, messageText)
+            showCooldownTimer()
+        }
     }
 
     private fun networkPostStatus() {
@@ -287,7 +287,13 @@ class MainActivity : AppCompatActivity() {
         if (roomsGraph.isNotEmpty() && currentRoomId != -1) {
             val nextRoom: String? = anticipateNextRoom(direction)
             val moveWisely: MoveWisely = MoveWisely(direction, nextRoom)
-            networkPostMove(moveWisely)
+            val networkRunnable: Runnable = Runnable {
+                networkPostMove(moveWisely)
+            }
+            val networkThread = Thread(networkRunnable)
+            networkThread.start()
+            networkThread.join()
+            currentRoomId
         } else {
             UserInteraction.inform(this, "Please do a GET Init first...")
         }
@@ -373,9 +379,9 @@ class MainActivity : AppCompatActivity() {
             val direction: String? = getDirectionForRoom(it)
             if (direction == null) {
                 UserInteraction.askQuestion(this, "Room Not Found", "Problem encountered traversing to room #$roomId!", "Okay", null)
-                return@forEach
             } else {
                 moveInDirection(direction)
+//                recreate()
                 Thread.sleep(cooldownAmount?.times(1000)?.toLong() ?: 1000)
             }
         }
