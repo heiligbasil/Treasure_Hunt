@@ -67,10 +67,7 @@ class MainActivity : AppCompatActivity() {
         button_move_south.setOnClickListener { moveInDirection("s") }
         button_move_east.setOnClickListener { moveInDirection("e") }
         button_move_west.setOnClickListener { moveInDirection("w") }
-        button_init.setOnClickListener {
-            networkGetInit()
-            view_map.calculateSize()
-        }
+        button_init.setOnClickListener { networkGetInit() }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
@@ -478,6 +475,7 @@ class MainActivity : AppCompatActivity() {
         roomsGraph[currentRoomId]?.set(0, responseBody)
         roomsGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
         roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+        view_map.calculateSize()
     }
 
     private fun anticipateNextRoom(direction: String): String? {

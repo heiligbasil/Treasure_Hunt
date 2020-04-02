@@ -18,8 +18,8 @@ class AdventureMapView @JvmOverloads constructor(
     defStyleRes: Int = 0
 ) : View(context, attrs, defStyleAttr, defStyleRes) {
 
-    var cellsGrid: Array<Array<Int>> = Array(10) { Array(10) { -1 } }
-    var shiftGridBy: Int = 50
+    var cellsGrid: Array<Array<Int>> = Array(1) { Array(1) { -1 } }
+    var calculated=false
     private var numColumns = 30
     private var numRows = 20
     private var cellWidth = 0
@@ -66,14 +66,15 @@ class AdventureMapView @JvmOverloads constructor(
     }
 
     fun calculateSize() {
-        if (roomsGraph.isNotEmpty())
-            convertCoordinatesToGrid()
+        if (roomsGraph.isEmpty())
+            return
+        convertCoordinatesToGrid()
 
-
-        cellHeight = height / (cellsGrid.size - shiftGridBy)
+        cellHeight = height / max((cellsGrid.size - ((shiftXGridBy+shiftYGridBy)/2)),1)
         cellWidth = cellHeight
 //        cellChecked = Array(numColumns) { BooleanArray(numRows) }
 //        cellColors = Array(numColumns) { IntArray(numRows) }
+        calculated=true
         invalidate()
     }
 
@@ -94,7 +95,11 @@ class AdventureMapView @JvmOverloads constructor(
         cellsList.forEach {
             cellsGrid[it.value.gridY][it.value.gridX] = it.key ?: -1
         }
+        cellsGrid.reverse()
     }
+
+    var shiftXGridBy: Int = 40
+    var shiftYGridBy: Int = 20
 
     /**
      * Implement this to do your drawing.
@@ -102,12 +107,15 @@ class AdventureMapView @JvmOverloads constructor(
      * @param canvas the canvas on which the background will be drawn
      */
     override fun onDraw(canvas: Canvas) {
+        if (!calculated)
+            return
 //        val width = width
 //        val height = height
-        for (x in 0 until cellsGrid.size - shiftGridBy) {
-            for (y in 0 until cellsGrid.size - shiftGridBy) {
-                if (cellsGrid[y + shiftGridBy][x + shiftGridBy] > -1) {
-                    val cellNumber = cellsGrid[y + shiftGridBy][x + shiftGridBy]
+
+        for (x in -shiftXGridBy until cellsGrid.size-shiftXGridBy) {
+            for (y in shiftYGridBy until cellsGrid.size+shiftYGridBy) {
+                if (cellsGrid[y-shiftYGridBy][x+shiftXGridBy] > -1) {
+                    val cellNumber = cellsGrid[y-shiftYGridBy][x+shiftXGridBy]
                     val hexColor = (roomsGraph[cellNumber]?.get(2) as CellDetails).color
                     cellPaint.color = Color.parseColor(hexColor)
 
@@ -119,11 +127,13 @@ class AdventureMapView @JvmOverloads constructor(
                         val x: Int = cellDetails.gridY
                         val y: Int = cellDetails.gridX
                         cellPaint.color = Color.parseColor(cellDetails.color)*/
+                    // Filled color
                     canvas.drawRect(
                         x * cellWidth.toFloat(), y * cellHeight.toFloat(),
                         (x + 1) * cellWidth.toFloat(), (y + 1) * cellHeight.toFloat(),
                         cellPaint
                     )
+                    // Outlined color
                     canvas.drawRect(
                         x * cellWidth.toFloat(), y * cellHeight.toFloat(),
                         (x + 1) * cellWidth.toFloat(), (y + 1) * cellHeight.toFloat(),
@@ -161,7 +171,7 @@ class AdventureMapView @JvmOverloads constructor(
                         ((y + 1) * cellHeight.toFloat()) - 15,
                         cellPaintDoor
                     )
-
+                    // Cell number
                     canvas.drawText(
                         cellNumber.toString(),
                         (x + .05F) * cellWidth.toFloat(),
