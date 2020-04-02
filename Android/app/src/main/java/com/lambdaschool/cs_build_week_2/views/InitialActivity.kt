@@ -1,9 +1,9 @@
 package com.lambdaschool.cs_build_week_2.views
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Gravity
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import kotlinx.android.synthetic.main.activity_initial.*

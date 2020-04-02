@@ -67,7 +67,10 @@ class MainActivity : AppCompatActivity() {
         button_move_south.setOnClickListener { moveInDirection("s") }
         button_move_east.setOnClickListener { moveInDirection("e") }
         button_move_west.setOnClickListener { moveInDirection("w") }
-        button_init.setOnClickListener { networkGetInit() }
+        button_init.setOnClickListener {
+            networkGetInit()
+            view_map.calculateSize()
+        }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
