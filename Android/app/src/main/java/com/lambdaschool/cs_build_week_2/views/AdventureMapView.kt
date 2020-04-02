@@ -8,7 +8,10 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import com.lambdaschool.cs_build_week_2.models.CellDetails
+import com.lambdaschool.cs_build_week_2.models.RoomDetails
+import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.roomsGraph
+import kotlin.math.abs
 import kotlin.math.max
 
 class AdventureMapView @JvmOverloads constructor(
@@ -18,12 +21,13 @@ class AdventureMapView @JvmOverloads constructor(
     defStyleRes: Int = 0
 ) : View(context, attrs, defStyleAttr, defStyleRes) {
 
-    var cellsGrid: Array<Array<Int>> = Array(1) { Array(1) { -1 } }
-    var calculated=false
-    private var numColumns = 30
-    private var numRows = 20
+    private var cellsGrid: Array<Array<Int>> = Array(1) { Array(1) { -1 } }
+    private var calculated = false
+    private var shiftXGridBy: Int = 40
+    private var shiftYGridBy: Int = 20
     private var cellWidth = 0
     private var cellHeight = 0
+
     private val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         strokeJoin = Paint.Join.ROUND
@@ -70,11 +74,11 @@ class AdventureMapView @JvmOverloads constructor(
             return
         convertCoordinatesToGrid()
 
-        cellHeight = height / max((cellsGrid.size - ((shiftXGridBy+shiftYGridBy)/2)),1)
+        cellHeight = height / max((cellsGrid.size - ((shiftXGridBy + shiftYGridBy) / 2)), 1)
         cellWidth = cellHeight
 //        cellChecked = Array(numColumns) { BooleanArray(numRows) }
 //        cellColors = Array(numColumns) { IntArray(numRows) }
-        calculated=true
+        calculated = true
         invalidate()
     }
 
@@ -98,8 +102,6 @@ class AdventureMapView @JvmOverloads constructor(
         cellsGrid.reverse()
     }
 
-    var shiftXGridBy: Int = 40
-    var shiftYGridBy: Int = 20
 
     /**
      * Implement this to do your drawing.
@@ -112,12 +114,15 @@ class AdventureMapView @JvmOverloads constructor(
 //        val width = width
 //        val height = height
 
-        for (x in -shiftXGridBy until cellsGrid.size-shiftXGridBy) {
-            for (y in shiftYGridBy until cellsGrid.size+shiftYGridBy) {
-                if (cellsGrid[y-shiftYGridBy][x+shiftXGridBy] > -1) {
-                    val cellNumber = cellsGrid[y-shiftYGridBy][x+shiftXGridBy]
+        for (x in -shiftXGridBy until cellsGrid.size - shiftXGridBy) {
+            for (y in shiftYGridBy until cellsGrid.size + shiftYGridBy) {
+                if (cellsGrid[y - shiftYGridBy][x + shiftXGridBy] > -1) {
+                    val cellNumber = cellsGrid[y - shiftYGridBy][x + shiftXGridBy]
                     val hexColor = (roomsGraph[cellNumber]?.get(2) as CellDetails).color
                     cellPaint.color = Color.parseColor(hexColor)
+                    if (cellNumber == MainActivity.currentRoomId) {
+                        cellPaint.color = Color.TRANSPARENT
+                    }
 
 
 //        if (roomsGraph.isNotEmpty() && currentRoomId != -1) {
@@ -204,8 +209,17 @@ class AdventureMapView @JvmOverloads constructor(
      * @param event The motion event.
      * @return True if the event was handled, false otherwise.
      */
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
-        return super.onTouchEvent(event)
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            val column = (event.x / cellWidth).toInt()
+            val row = (event.y / cellHeight).toInt()
+            val selectedCell: Int = cellsGrid[column - 10][row + 30]
+            if (selectedCell > -1) {
+                val roomDetails: RoomDetails = (roomsGraph[selectedCell]?.get(0) as RoomDetails)
+                UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Okay", null)
+            }
+        }
+        return true
     }
 
     /**
