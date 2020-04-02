@@ -12,10 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.lambdaschool.cs_build_week_2.R
-import com.lambdaschool.cs_build_week_2.api.InitInterface
-import com.lambdaschool.cs_build_week_2.api.MoveInterface
-import com.lambdaschool.cs_build_week_2.api.StatusInterface
-import com.lambdaschool.cs_build_week_2.api.TakeInterface
+import com.lambdaschool.cs_build_week_2.api.*
 import com.lambdaschool.cs_build_week_2.models.*
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
@@ -45,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         var currentRoomId: Int = -1
         var responseMessage: String = ""
         var responseRoomInfo: String = ""
+        var inventoryStatus: Status = Status()
         val roomDetails = RoomDetails()
         val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
@@ -74,29 +72,50 @@ class MainActivity : AppCompatActivity() {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
             if (roomItems.isNotEmpty()) {
-                val takeTreasure: TakeTreasure = TakeTreasure(roomItems[0])
-                networkPostTake(takeTreasure)
+                val treasure: Treasure = Treasure(roomItems[0])
+                networkPostTakeTreasure(treasure)
             } else {
                 UserInteraction.inform(this, "Nothing to take!")
             }
         }
         button_drop.setOnClickListener {
-            moveToSpecificRoomAutomated(472)
+            moveToSpecificRoomAutomated(63)
         }
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {}
         button_sell.setOnClickListener {
-            UserInteraction.askQuestion(
-                this,
-                "Shopkeeper Sunnie",
-                "Are you sure you want to sell that item?",
-                "Confirm",
-                "Just browsing"
-            )
+            //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
+            val roomItems: List<String> = inventoryStatus.inventory ?: listOf()
+            if (roomItems.isNotEmpty()) {
+                val randomItem: String = roomItems.random()
+                val treasure: Treasure = Treasure(randomItem, "yes")
+                networkPostSellTreasure(treasure)
+//                if( UserInteraction.askQuestion(
+//                    this,
+//                    "Mechanical Shopkeeper",
+//                    "Are you sure you want to sell '$randomItem'?",
+//                    "Confirm",
+//                    "Just browsing"
+//                )){
+//                    treasure = Treasure(randomItem, "yes")
+//                    networkPostSellTreasure(treasure)
+//                }
+            } else {
+                UserInteraction.inform(this, "Nothing to sell!")
+            }
         }
         button_wear.setOnClickListener {}
         button_undress.setOnClickListener {}
-        button_examine.setOnClickListener {}
+        button_examine.setOnClickListener {
+            //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
+            val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
+            if (roomItems.isNotEmpty()) {
+                val treasure: Treasure = Treasure(roomItems.random())
+                networkPostExamineTreasure(treasure)
+            } else {
+                UserInteraction.inform(this, "Nothing to Examine!")
+            }
+        }
         button_change_name.setOnClickListener {}
         button_pray.setOnClickListener {}
         button_fly.setOnClickListener {}
@@ -223,6 +242,7 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call<Status>, response: Response<Status>) {
                 if (response.isSuccessful) {
                     val responseBody: Status = response.body() as Status
+                    inventoryStatus = responseBody
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     val message: String =
@@ -242,7 +262,97 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun networkPostTake(takeTreasure: TakeTreasure) {
+    private fun networkPostSellTreasure(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: SellInterface = retrofit.create(SellInterface::class.java)
+        val call: Call<RoomDetails> = service.postSell(treasure)
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Sell failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Sell success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostExamineTreasure(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: ExamineInterface = retrofit.create(ExamineInterface::class.java)
+        val call: Call<RoomDetails> = service.postExamine(treasure)
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Examine failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Examine success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostTakeTreasure(treasure: Treasure) {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
             .addConverterFactory(GsonConverterFactory.create())
@@ -254,7 +364,7 @@ class MainActivity : AppCompatActivity() {
             }.build())
             .build()
         val service: TakeInterface = retrofit.create(TakeInterface::class.java)
-        val call: Call<RoomDetails> = service.postTake(takeTreasure)
+        val call: Call<RoomDetails> = service.postTake(treasure)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
