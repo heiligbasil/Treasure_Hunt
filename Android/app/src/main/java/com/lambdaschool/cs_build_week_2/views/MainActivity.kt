@@ -114,8 +114,8 @@ class MainActivity : AppCompatActivity() {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
             val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
-            val inventoryItems= inventoryStatus.inventory  ?: arrayListOf()
-            val combined = roomItems+players+inventoryItems
+            val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
+            val combined = roomItems + players + inventoryItems
             if (combined.isNotEmpty()) {
                 val treasure: Treasure = Treasure(combined.random())
                 networkPostExamineTreasure(treasure)
@@ -523,8 +523,18 @@ class MainActivity : AppCompatActivity() {
         val extractedRoomDetails: RoomDetails = roomsGraph[roomId]?.get(0) as RoomDetails
         val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
-        // TODO: Change cell color depending on condition
-        return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), "#${Color.BLUE.toHexString()}")
+        val cellColor: String = when (extractedRoomDetails.title) {
+            "A misty room" -> "#${Color.WHITE.toHexString()}"
+            "Shop" -> "#${Color.LTGRAY.toHexString()}"
+            "JKMT Donuts" -> "#4DF18C8C"
+            "A brightly lit room" -> "#${Color.YELLOW.toHexString()}"
+            "Arron's Athenaeum" -> "#${Color.BLUE.toHexString()}"
+            "x" -> "#${Color.GREEN.toHexString()}"
+            "y" -> "#${Color.GREEN.toHexString()}"
+            "z" -> "#${Color.GREEN.toHexString()}"
+            else -> "#${Color.GREEN.toHexString()}"
+        }
+        return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), cellColor)
     }
 
     private fun showCooldownTimer() {
