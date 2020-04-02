@@ -82,7 +82,11 @@ class MainActivity : AppCompatActivity() {
             moveToSpecificRoomAutomated(63)
         }
         button_status.setOnClickListener { networkPostStatus() }
-        button_buy.setOnClickListener {}
+        button_buy.setOnClickListener {
+            //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
+            val treasure: Treasure = Treasure("donuts")
+            networkPostBuyTreasure(treasure)
+        }
         button_sell.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems: List<String> = inventoryStatus.inventory ?: listOf()
@@ -109,8 +113,11 @@ class MainActivity : AppCompatActivity() {
         button_examine.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
-            if (roomItems.isNotEmpty()) {
-                val treasure: Treasure = Treasure(roomItems.random())
+            val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
+            val inventoryItems= inventoryStatus.inventory  ?: arrayListOf()
+            val combined = roomItems+players+inventoryItems
+            if (combined.isNotEmpty()) {
+                val treasure: Treasure = Treasure(combined.random())
                 networkPostExamineTreasure(treasure)
             } else {
                 UserInteraction.inform(this, "Nothing to Examine!")
@@ -247,6 +254,51 @@ class MainActivity : AppCompatActivity() {
                     text_room_info.text = responseBody.toString()
                     val message: String =
                         "Code ${response.code()}: Inventory status success!\n${responseBody.messages?.joinToString("\n")}"
+                    text_log.append(message + "\n")
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostBuyTreasure(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: BuyInterface = retrofit.create(BuyInterface::class.java)
+        val call: Call<RoomDetails> = service.postBuy(treasure)
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Buy failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Buy success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
                     text_log.append(message + "\n")
                     UserInteraction.inform(applicationContext, message)
                 } else {

@@ -35,8 +35,8 @@ interface StatusInterface {
 }
 
 interface BuyInterface {
-    @GET("adv/buy/")
-    fun getBuy(): Call<RoomDetails>
+    @POST("adv/buy/")
+    fun postBuy(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface SellInterface {
