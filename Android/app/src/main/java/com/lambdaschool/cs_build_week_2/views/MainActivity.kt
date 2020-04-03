@@ -71,8 +71,8 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-//            moveToUnexploredAutomated()
-            moveToSpecificRoomAutomated(22)
+//            moveToUnexploredAutomated(pauseInSeconds = 8)
+            moveToSpecificRoomAutomated(472, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -85,20 +85,34 @@ class MainActivity : AppCompatActivity() {
                 UserInteraction.inform(this, "Nothing to take!")
             }
         }
-        button_drop.setOnClickListener { }
+        button_drop.setOnClickListener {
+            if (inventoryStatus.name != null) {
+                val inventoryItems: MutableList<String> = inventoryStatus.inventory?.toMutableList() ?: arrayListOf()
+                if (inventoryItems.isNotEmpty()) {
+                    val treasure: Treasure = Treasure(inventoryItems.first())
+                    inventoryItems.removeAt(0)
+                    inventoryStatus.inventory = inventoryItems
+                    networkPostDrop(treasure)
+                } else {
+                    UserInteraction.inform(this, "Nothing to drop!")
+                }
+            } else {
+                UserInteraction.inform(this, "Please do a GET Status first...")
+            }
+        }
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
-            val treasure: Treasure = Treasure("donuts")
+            val treasure: Treasure = Treasure("JKMT Donuts")
             networkPostBuyTreasure(treasure)
         }
         button_sell.setOnClickListener {
             if (inventoryStatus.name != null) {
-                val roomItems: MutableList<String> = inventoryStatus.inventory?.toMutableList() ?: arrayListOf()
-                if (roomItems.isNotEmpty()) {
-                    val treasure: Treasure = Treasure(roomItems.first(), "yes")
-                    roomItems.removeAt(0)
-                    inventoryStatus.inventory = roomItems
+                val inventoryItems: MutableList<String> = inventoryStatus.inventory?.toMutableList() ?: arrayListOf()
+                if (inventoryItems.isNotEmpty()) {
+                    val treasure: Treasure = Treasure(inventoryItems.first(), "yes")
+                    inventoryItems.removeAt(0)
+                    inventoryStatus.inventory = inventoryItems
                     networkPostSellTreasure(treasure)
 //                if( UserInteraction.askQuestion(
 //                    this,
@@ -568,6 +582,54 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+
+    private fun networkPostDrop(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: DropInterface = retrofit.create(DropInterface::class.java)
+        val call: Call<RoomDetails> = service.postDrop(treasure)
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Drop failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Drop success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
     private fun networkPostTakeTreasure(treasure: Treasure) {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
@@ -766,6 +828,7 @@ class MainActivity : AppCompatActivity() {
             UserInteraction.askQuestion(
                 this, "Room Not Found", "Problem encountered traversing to room #$destinationRoom!", "Okay", null
             )
+            traversalTimer.cancel()
         } else {
             when (direction) {
                 "n" -> button_move_north.performClick()
@@ -787,7 +850,7 @@ class MainActivity : AppCompatActivity() {
         return roomsGraph[currentRoomId]?.get(0) as RoomDetails
     }
 
-    private fun moveToUnexploredAutomated() {
+    private fun moveToUnexploredAutomated(pauseInSeconds: Int = 16) {
         if (currentRoomId == -1) {
             UserInteraction.inform(this, "Please do a GET Init first...")
             return
@@ -799,10 +862,10 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 runNextAutomatedStep(true)
             }
-        }, 16000, 16000)
+        }, pauseInSeconds * 1000L, pauseInSeconds * 1000L)
     }
 
-    private fun moveToSpecificRoomAutomated(roomId: Int?) {
+    private fun moveToSpecificRoomAutomated(roomId: Int?, pauseInSeconds: Int = 16) {
         if (currentRoomId == -1) {
             UserInteraction.inform(this, "Please do a GET Init first...")
             return
@@ -812,7 +875,7 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 runNextAutomatedStep(false)
             }
-        }, 0, 21000)
+        }, 0, pauseInSeconds * 1000L)
 
         /*val pathToRoom: ArrayList<Int?> = bfs(roomId)
         pathToRoom.forEach {

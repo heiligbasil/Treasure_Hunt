@@ -25,8 +25,8 @@ interface TakeInterface {
 }
 
 interface DropInterface {
-    @GET("adv/drop/")
-    fun getDrop(): Call<RoomDetails>
+    @POST("adv/drop/")
+    fun postDrop(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface StatusInterface {
