@@ -136,8 +136,9 @@ class MainActivity : AppCompatActivity() {
             val treasureName: Treasure = Treasure("Basil der Grosse", "aye")
             networkPostChangeName(treasureName)
         }
-        button_pray.setOnClickListener {}
-        button_fly.setOnClickListener {}
+        button_pray.setOnClickListener {
+            networkPostPray()
+        }
         button_dash.setOnClickListener {}
         button_player_state.setOnClickListener {}
         button_transmogrify.setOnClickListener {}
@@ -209,7 +210,6 @@ class MainActivity : AppCompatActivity() {
             .build()
         val service: MoveInterface = retrofit.create(MoveInterface::class.java)
         val call: Call<RoomDetails> = service.postMove(moveWisely)
-
         var executeResponse: Response<RoomDetails>? = null
         try {
             executeResponse = call.execute()
@@ -218,7 +218,6 @@ class MainActivity : AppCompatActivity() {
         } catch (rte: RuntimeException) {
             responseMessage = "RuntimeException: ${rte.message}\n"
         }
-
         if (executeResponse?.isSuccessful == true) {
             val originalRoomId: Int = currentRoomId
             val responseAsRoomDetails: RoomDetails = executeResponse.body() as RoomDetails
@@ -232,7 +231,49 @@ class MainActivity : AppCompatActivity() {
                 updateGraphDetails(responseAsRoomDetails)
                 setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
                 SharedPrefs.saveState()
-//                view_map.calculateSize()
+            }
+        } else {
+            val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+            val errorBody: ErrorBody = Gson().fromJson(executeResponse?.errorBody()?.string(), errorBodyTypeCast)
+            responseMessage = "${executeResponse?.message()} ${executeResponse?.code()}:\n$errorBody"
+            cooldownAmount = errorBody.cooldown
+        }
+    }
+
+    private fun networkPostFly(moveWisely: MoveWisely) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: FlyInterface = retrofit.create(FlyInterface::class.java)
+        val call: Call<RoomDetails> = service.postFly(moveWisely)
+        var executeResponse: Response<RoomDetails>? = null
+        try {
+            executeResponse = call.execute()
+        } catch (ioe: IOException) {
+            responseMessage = "IOException: ${ioe.message}\n"
+        } catch (rte: RuntimeException) {
+            responseMessage = "RuntimeException: ${rte.message}\n"
+        }
+        if (executeResponse?.isSuccessful == true) {
+            val originalRoomId: Int = currentRoomId
+            val responseAsRoomDetails: RoomDetails = executeResponse.body() as RoomDetails
+            responseRoomInfo = responseAsRoomDetails.toString()
+            cooldownAmount = responseAsRoomDetails.cooldown
+            responseMessage = "Code ${executeResponse.code()}: "
+            if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
+                responseMessage += "Fly failure (\"${moveWisely.direction}\")\n${responseAsRoomDetails.errors?.joinToString("\n")}"
+            } else {
+                responseMessage += "Fly success!\n${responseAsRoomDetails.messages?.joinToString("\n")}"
+                updateGraphDetails(responseAsRoomDetails)
+                setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
+                SharedPrefs.saveState()
             }
         } else {
             val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
@@ -270,6 +311,54 @@ class MainActivity : AppCompatActivity() {
                     text_room_info.text = responseBody.toString()
                     val message: String =
                         "Code ${response.code()}: Inventory status success!\n${responseBody.messages?.joinToString("\n")}"
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostPray() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: PrayInterface = retrofit.create(PrayInterface::class.java)
+        val call: Call<RoomDetails> = service.postPray()
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Pray failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Pray success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
@@ -532,7 +621,10 @@ class MainActivity : AppCompatActivity() {
             val nextRoom: String? = anticipateNextRoom(direction)
             val moveWisely: MoveWisely = MoveWisely(direction, nextRoom)
             val networkRunnable: Runnable = Runnable {
-                networkPostMove(moveWisely)
+                if (getCurrentRoomDetails().terrain?.toLowerCase(Locale.getDefault()) == "mountain")
+                    networkPostFly(moveWisely)
+                else
+                    networkPostMove(moveWisely)
             }
             val networkThread = Thread(networkRunnable)
             networkThread.start()

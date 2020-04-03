@@ -369,21 +369,6 @@
                         android:textSize="11sp" />
 
                     <Button
-                        android:id="@+id/button_fly"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="1dp"
-                        android:height="16dp"
-                        android:background="@color/colorForestFade"
-                        android:fontFamily="cursive"
-                        android:minHeight="0dp"
-                        android:text="Fly"
-                        android:textAllCaps="false"
-                        android:textColor="@color/colorRuby"
-                        android:textFontWeight="900"
-                        android:textSize="11sp" />
-
-                    <Button
                         android:id="@+id/button_dash"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"

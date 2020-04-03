@@ -70,8 +70,8 @@ interface PrayInterface {
 }
 
 interface FlyInterface {
-    @GET("adv/fly/")
-    fun getFly(): Call<RoomDetails>
+    @POST("adv/fly/")
+    fun postFly(@Body moveWisely: MoveWisely): Call<RoomDetails>
 }
 
 interface DashInterface {
