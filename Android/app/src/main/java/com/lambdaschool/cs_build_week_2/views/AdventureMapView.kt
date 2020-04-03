@@ -47,7 +47,7 @@ class AdventureMapView @JvmOverloads constructor(
     }
     private val cellPaintDoor = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.WHITE
+        color = Color.YELLOW
         strokeWidth = 5F
     }
     public lateinit var cellChecked: Array<BooleanArray>
@@ -118,10 +118,11 @@ class AdventureMapView @JvmOverloads constructor(
             for (y in shiftYGridBy until cellsGrid.size + shiftYGridBy) {
                 if (cellsGrid[y - shiftYGridBy][x + shiftXGridBy] > -1) {
                     val cellNumber = cellsGrid[y - shiftYGridBy][x + shiftXGridBy]
+                    val exitDirections = roomsGraph[cellNumber]?.get(1) as HashMap<*, *>
                     val hexColor = (roomsGraph[cellNumber]?.get(2) as CellDetails).color
                     cellPaint.color = Color.parseColor(hexColor)
                     if (cellNumber == MainActivity.currentRoomId) {
-                        cellPaint.color = Color.TRANSPARENT
+                        cellPaint.color = Color.RED
                     }
 
 
@@ -144,38 +145,46 @@ class AdventureMapView @JvmOverloads constructor(
                         (x + 1) * cellWidth.toFloat(), (y + 1) * cellHeight.toFloat(),
                         cellPaintBorder
                     )
-                    // Draw "North" door
-                    canvas.drawLine(
-                        (x * cellWidth.toFloat()) + 15,
-                        y * cellHeight.toFloat(),
-                        ((x + 1) * cellWidth.toFloat()) - 15,
-                        y * cellHeight.toFloat(),
-                        cellPaintDoor
-                    )
-                    // Draw "South" door
-                    canvas.drawLine(
-                        (x * cellWidth.toFloat()) + 15,
-                        (y + 1) * cellHeight.toFloat(),
-                        ((x + 1) * cellWidth.toFloat()) - 15,
-                        (y + 1) * cellHeight.toFloat(),
-                        cellPaintDoor
-                    )
-                    // Draw "West" door
-                    canvas.drawLine(
-                        x * cellWidth.toFloat(),
-                        (y * cellHeight.toFloat()) + 15,
-                        x * cellWidth.toFloat(),
-                        ((y + 1) * cellHeight.toFloat()) - 15,
-                        cellPaintDoor
-                    )
-                    // Draw "East" door
-                    canvas.drawLine(
-                        (x + 1) * cellWidth.toFloat(),
-                        (y * cellHeight.toFloat()) + 15,
-                        (x + 1) * cellWidth.toFloat(),
-                        ((y + 1) * cellHeight.toFloat()) - 15,
-                        cellPaintDoor
-                    )
+                    if (exitDirections.containsKey("n")) {
+                        // Draw "North" door
+                        canvas.drawLine(
+                            (x * cellWidth.toFloat()) + 5,
+                            y * cellHeight.toFloat(),
+                            ((x + 1) * cellWidth.toFloat()) - 5,
+                            y * cellHeight.toFloat(),
+                            cellPaintDoor
+                        )
+                    }
+                    if (exitDirections.containsKey("s")) {
+                        // Draw "South" door
+                        canvas.drawLine(
+                            (x * cellWidth.toFloat()) + 5,
+                            (y + 1) * cellHeight.toFloat(),
+                            ((x + 1) * cellWidth.toFloat()) - 5,
+                            (y + 1) * cellHeight.toFloat(),
+                            cellPaintDoor
+                        )
+                    }
+                    if (exitDirections.containsKey("w")) {
+                        // Draw "West" door
+                        canvas.drawLine(
+                            x * cellWidth.toFloat(),
+                            (y * cellHeight.toFloat()) + 5,
+                            x * cellWidth.toFloat(),
+                            ((y + 1) * cellHeight.toFloat()) - 5,
+                            cellPaintDoor
+                        )
+                    }
+                    if (exitDirections.containsKey("e")) {
+                        // Draw "East" door
+                        canvas.drawLine(
+                            (x + 1) * cellWidth.toFloat(),
+                            (y * cellHeight.toFloat()) + 5,
+                            (x + 1) * cellWidth.toFloat(),
+                            ((y + 1) * cellHeight.toFloat()) - 5,
+                            cellPaintDoor
+                        )
+                    }
                     // Cell number
                     canvas.drawText(
                         cellNumber.toString(),

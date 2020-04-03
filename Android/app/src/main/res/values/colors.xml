@@ -10,4 +10,10 @@
     <color name="colorForestFade">#4D497C50</color>
     <color name="colorRuby">#FF551212</color>
     <color name="colorRubyFade">#4D551212</color>
+    <color name="colorAmber">#FFD600</color>
+    <color name="colorAmberFade">#4DFFD600</color>
+    <color name="colorCupid">#DD2C00</color>
+    <color name="colorCupidFade">#4DDD2C00</color>
+    <color name="colorSky">#0091EA</color>
+    <color name="colorSkyFade">#4D0091EA</color>
 </resources>
