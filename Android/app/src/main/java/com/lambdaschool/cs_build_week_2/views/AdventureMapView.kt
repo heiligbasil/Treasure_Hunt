@@ -24,7 +24,7 @@ class AdventureMapView @JvmOverloads constructor(
     private var cellsGrid: Array<Array<Int>> = Array(1) { Array(1) { -1 } }
     private var calculated = false
     private var shiftXGridBy: Int = 40
-    private var shiftYGridBy: Int = 20
+    private var shiftYGridBy: Int = 10
     private var cellWidth = 0
     private var cellHeight = 0
 
