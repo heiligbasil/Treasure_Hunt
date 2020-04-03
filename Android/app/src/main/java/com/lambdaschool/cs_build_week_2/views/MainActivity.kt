@@ -69,7 +69,10 @@ class MainActivity : AppCompatActivity() {
         button_move_east.setOnClickListener { moveInDirection("e") }
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
-        button_traverse.setOnClickListener { moveToUnexploredAutomated() }
+        button_traverse.setOnClickListener {
+//            moveToUnexploredAutomated()
+            moveToSpecificRoomAutomated(399)
+        }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
@@ -534,10 +537,14 @@ class MainActivity : AppCompatActivity() {
             "JKMT Donuts" -> "#4DF18C8C"
             "A brightly lit room" -> "#${Color.YELLOW.toHexString()}"
             "Arron's Athenaeum" -> "#${Color.BLUE.toHexString()}"
-            "x" -> "#${Color.GREEN.toHexString()}"
-            "y" -> "#${Color.GREEN.toHexString()}"
-            "z" -> "#${Color.GREEN.toHexString()}"
-            else -> "#${Color.GREEN.toHexString()}"
+            "Mt. Holloway" -> "#${Color.GRAY.toHexString()}"
+            "The Peak of Mt. Holloway" -> "#${Color.DKGRAY.toHexString()}"
+            "Pirate Ry's" -> "#${Color.BLACK.toHexString()}"
+            "z" -> "#${Color.RED.toHexString()}"
+            "z" -> "#${Color.RED.toHexString()}"
+            "z" -> "#${Color.RED.toHexString()}"
+            "z" -> "#${Color.RED.toHexString()}"
+            else -> "#${Color.RED.toHexString()}"
         }
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), cellColor)
     }
