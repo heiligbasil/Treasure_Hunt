@@ -89,12 +89,13 @@ class MainActivity : AppCompatActivity() {
             networkPostBuyTreasure(treasure)
         }
         button_sell.setOnClickListener {
-            //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
-            val roomItems: List<String> = inventoryStatus.inventory ?: listOf()
-            if (roomItems.isNotEmpty()) {
-                val randomItem: String = roomItems.random()
-                val treasure: Treasure = Treasure(randomItem, "yes")
-                networkPostSellTreasure(treasure)
+            if (inventoryStatus.name != null) {
+                val roomItems: MutableList<String> = inventoryStatus.inventory?.toMutableList() ?: arrayListOf()
+                if (roomItems.isNotEmpty()) {
+                    val treasure: Treasure = Treasure(roomItems.first(), "yes")
+                    roomItems.removeAt(0)
+                    inventoryStatus.inventory = roomItems
+                    networkPostSellTreasure(treasure)
 //                if( UserInteraction.askQuestion(
 //                    this,
 //                    "Mechanical Shopkeeper",
@@ -105,8 +106,11 @@ class MainActivity : AppCompatActivity() {
 //                    treasure = Treasure(randomItem, "yes")
 //                    networkPostSellTreasure(treasure)
 //                }
+                } else {
+                    UserInteraction.inform(this, "Nothing to sell!")
+                }
             } else {
-                UserInteraction.inform(this, "Nothing to sell!")
+                UserInteraction.inform(this, "Please do a GET Status first...")
             }
         }
         button_wear.setOnClickListener {}
