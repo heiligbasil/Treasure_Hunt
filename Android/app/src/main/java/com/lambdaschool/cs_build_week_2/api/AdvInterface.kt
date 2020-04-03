@@ -1,9 +1,6 @@
 package com.lambdaschool.cs_build_week_2.api
 
-import com.lambdaschool.cs_build_week_2.models.MoveWisely
-import com.lambdaschool.cs_build_week_2.models.RoomDetails
-import com.lambdaschool.cs_build_week_2.models.Status
-import com.lambdaschool.cs_build_week_2.models.Treasure
+import com.lambdaschool.cs_build_week_2.models.*
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -25,8 +22,8 @@ interface TakeInterface {
 }
 
 interface DropInterface {
-    @GET("adv/drop/")
-    fun getDrop(): Call<RoomDetails>
+    @POST("adv/drop/")
+    fun postDrop(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface StatusInterface {
@@ -59,9 +56,14 @@ interface ExamineInterface {
     fun postExamine(@Body treasure: Treasure): Call<RoomDetails>
 }
 
+interface ExamineShortInterface {
+    @POST("adv/examine/")
+    fun postExamineShort(@Body treasure: Treasure): Call<ExamineShort>
+}
+
 interface ChangeNameInterface {
-    @GET("adv/change_name/")
-    fun getChangeName(): Call<RoomDetails>
+    @POST("adv/change_name/")
+    fun postChangeName(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface PrayInterface {
@@ -70,8 +72,8 @@ interface PrayInterface {
 }
 
 interface FlyInterface {
-    @GET("adv/fly/")
-    fun getFly(): Call<RoomDetails>
+    @POST("adv/fly/")
+    fun postFly(@Body moveWisely: MoveWisely): Call<RoomDetails>
 }
 
 interface DashInterface {
@@ -85,8 +87,8 @@ interface PlayerStateInterface {
 }
 
 interface TransmogrifyInterface {
-    @GET("adv/transmogrify/")
-    fun getTransmogrify(): Call<RoomDetails>
+    @POST("adv/transmogrify/")
+    fun postTransmogrify(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface CarryInterface {

@@ -8,8 +8,11 @@ import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
 import com.lambdaschool.cs_build_week_2.models.CellDetails
-import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.currentRoomId
+import com.lambdaschool.cs_build_week_2.models.RoomDetails
+import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.roomsGraph
+import kotlin.math.max
+import kotlin.math.min
 
 class AdventureMapView @JvmOverloads constructor(
     context: Context,
@@ -18,10 +21,13 @@ class AdventureMapView @JvmOverloads constructor(
     defStyleRes: Int = 0
 ) : View(context, attrs, defStyleAttr, defStyleRes) {
 
-    private var numColumns = 30
-    private var numRows = 30
+    private var cellsGrid: Array<Array<Int>> = Array(1) { Array(1) { -1 } }
+    private var calculated = false
+    private var shiftXGridBy: Int = 40
+    private var shiftYGridBy: Int = 10
     private var cellWidth = 0
     private var cellHeight = 0
+
     private val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
         strokeJoin = Paint.Join.ROUND
@@ -36,12 +42,12 @@ class AdventureMapView @JvmOverloads constructor(
     private val cellPaintText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         color = Color.BLACK
-        strokeWidth = 1.5F
-        textSize = 21F
+        strokeWidth = 1.2F
+        textSize = 16F
     }
     private val cellPaintDoor = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.WHITE
+        color = Color.YELLOW
         strokeWidth = 5F
     }
     public lateinit var cellChecked: Array<BooleanArray>
@@ -64,15 +70,38 @@ class AdventureMapView @JvmOverloads constructor(
     }
 
     fun calculateSize() {
-        if (roomsGraph.isNotEmpty())
-            numRows=roomsGraph.size
+        if (roomsGraph.isEmpty())
+            return
+        convertCoordinatesToGrid()
 
-        cellHeight = height / numRows
+        cellHeight = height / max((cellsGrid.size - ((shiftXGridBy + shiftYGridBy) / 2)), 1)
         cellWidth = cellHeight
 //        cellChecked = Array(numColumns) { BooleanArray(numRows) }
 //        cellColors = Array(numColumns) { IntArray(numRows) }
+        calculated = true
         invalidate()
     }
+
+
+    fun convertCoordinatesToGrid() {
+        val cellsList = hashMapOf<Int?, CellDetails>()
+        val xs = arrayListOf<Int>()
+        val ys = arrayListOf<Int>()
+        roomsGraph.forEach {
+            cellsList[it.key] = it.value[2] as CellDetails
+            xs.add((it.value[2] as CellDetails).gridX)
+            ys.add((it.value[2] as CellDetails).gridY)
+        }
+        val largestXcoord = xs.max() ?: 0
+        val largestYcoord = ys.max() ?: 0
+        val size = max(largestXcoord, largestYcoord) + 1
+        cellsGrid = Array(size) { Array(size) { -1 } }
+        cellsList.forEach {
+            cellsGrid[it.value.gridY][it.value.gridX] = it.key ?: -1
+        }
+        cellsGrid.reverse()
+    }
+
 
     /**
      * Implement this to do your drawing.
@@ -80,66 +109,90 @@ class AdventureMapView @JvmOverloads constructor(
      * @param canvas the canvas on which the background will be drawn
      */
     override fun onDraw(canvas: Canvas) {
+        if (!calculated)
+            return
 //        val width = width
 //        val height = height
-        for (y in 0 until numColumns) {
-            for (x in 0 until numRows) {
-//                if (cellChecked[i][j]) {
-//                    if (cellColors[i][j] == 0)
-//                        cellPaint.color = Color.MAGENTA
-//                    else
-//                        cellPaint.color = cellColors[i][j]
-//        if (roomsGraph.isNotEmpty() && currentRoomId != -1) {
-        /*roomsGraph.forEach {
-            val roomId: Int? = it.key
-            val cellDetails: CellDetails = roomsGraph[roomId]?.get(2) as CellDetails
-            val y: Int = cellDetails.gridY
-            val x: Int = cellDetails.gridX
-            cellPaint.color = Color.parseColor(cellDetails.color)*/
-            canvas.drawRect(
-                y * cellWidth.toFloat(), x * cellHeight.toFloat(),
-                (y + 1) * cellWidth.toFloat(), (x + 1) * cellHeight.toFloat(),
-                cellPaint
-            )
-            canvas.drawRect(
-                y * cellWidth.toFloat(), x * cellHeight.toFloat(),
-                (y + 1) * cellWidth.toFloat(), (x + 1) * cellHeight.toFloat(),
-                cellPaintBorder
-            )
-            // Draw "North" door
-            canvas.drawLine(
-                (y * cellWidth.toFloat()) + 15,
-                x * cellHeight.toFloat(),
-                ((y + 1) * cellWidth.toFloat()) - 15,
-                x * cellHeight.toFloat(),
-                cellPaintDoor
-            )
-            // Draw "South" door
-            canvas.drawLine(
-                (y * cellWidth.toFloat()) + 15,
-                (x + 1) * cellHeight.toFloat(),
-                ((y + 1) * cellWidth.toFloat()) - 15,
-                (x + 1) * cellHeight.toFloat(),
-                cellPaintDoor
-            )
-            // Draw "West" door
-            canvas.drawLine(
-                y * cellWidth.toFloat(),
-                (x * cellHeight.toFloat()) + 15,
-                y * cellWidth.toFloat(),
-                ((x + 1) * cellHeight.toFloat()) - 15,
-                cellPaintDoor
-            )
-            // Draw "East" door
-            canvas.drawLine(
-                (y + 1) * cellWidth.toFloat(),
-                (x * cellHeight.toFloat()) + 15,
-                (y + 1) * cellWidth.toFloat(),
-                ((x + 1) * cellHeight.toFloat()) - 15,
-                cellPaintDoor
-            )
 
-            canvas.drawText("500", (y + .05F) * cellWidth.toFloat(), (x + .7F) * cellHeight.toFloat(), cellPaintText)
+        for (x in -shiftXGridBy until cellsGrid.size - shiftXGridBy) {
+            for (y in shiftYGridBy until cellsGrid.size + shiftYGridBy) {
+                if (cellsGrid[y - shiftYGridBy][x + shiftXGridBy] > -1) {
+                    val cellNumber = cellsGrid[y - shiftYGridBy][x + shiftXGridBy]
+                    val exitDirections = roomsGraph[cellNumber]?.get(1) as HashMap<*, *>
+                    val hexColor = (roomsGraph[cellNumber]?.get(2) as CellDetails).color
+                    cellPaint.color = Color.parseColor(hexColor)
+                    if (cellNumber == MainActivity.currentRoomId) {
+                        cellPaint.color = Color.RED
+                    }
+
+
+//        if (roomsGraph.isNotEmpty() && currentRoomId != -1) {
+                    /*roomsGraph.forEach {
+                        val roomId: Int? = it.key
+                        val cellDetails: CellDetails = roomsGraph[roomId]?.get(2) as CellDetails
+                        val x: Int = cellDetails.gridY
+                        val y: Int = cellDetails.gridX
+                        cellPaint.color = Color.parseColor(cellDetails.color)*/
+                    // Filled color
+                    canvas.drawRect(
+                        x * cellWidth.toFloat(), y * cellHeight.toFloat(),
+                        (x + 1) * cellWidth.toFloat(), (y + 1) * cellHeight.toFloat(),
+                        cellPaint
+                    )
+                    // Outlined color
+                    canvas.drawRect(
+                        x * cellWidth.toFloat(), y * cellHeight.toFloat(),
+                        (x + 1) * cellWidth.toFloat(), (y + 1) * cellHeight.toFloat(),
+                        cellPaintBorder
+                    )
+                    if (exitDirections.containsKey("n")) {
+                        // Draw "North" door
+                        canvas.drawLine(
+                            (x * cellWidth.toFloat()) + 5,
+                            y * cellHeight.toFloat(),
+                            ((x + 1) * cellWidth.toFloat()) - 5,
+                            y * cellHeight.toFloat(),
+                            cellPaintDoor
+                        )
+                    }
+                    if (exitDirections.containsKey("s")) {
+                        // Draw "South" door
+                        canvas.drawLine(
+                            (x * cellWidth.toFloat()) + 5,
+                            (y + 1) * cellHeight.toFloat(),
+                            ((x + 1) * cellWidth.toFloat()) - 5,
+                            (y + 1) * cellHeight.toFloat(),
+                            cellPaintDoor
+                        )
+                    }
+                    if (exitDirections.containsKey("w")) {
+                        // Draw "West" door
+                        canvas.drawLine(
+                            x * cellWidth.toFloat(),
+                            (y * cellHeight.toFloat()) + 5,
+                            x * cellWidth.toFloat(),
+                            ((y + 1) * cellHeight.toFloat()) - 5,
+                            cellPaintDoor
+                        )
+                    }
+                    if (exitDirections.containsKey("e")) {
+                        // Draw "East" door
+                        canvas.drawLine(
+                            (x + 1) * cellWidth.toFloat(),
+                            (y * cellHeight.toFloat()) + 5,
+                            (x + 1) * cellWidth.toFloat(),
+                            ((y + 1) * cellHeight.toFloat()) - 5,
+                            cellPaintDoor
+                        )
+                    }
+                    // Cell number
+                    canvas.drawText(
+                        cellNumber.toString(),
+                        (x + .05F) * cellWidth.toFloat(),
+                        (y + .7F) * cellHeight.toFloat(),
+                        cellPaintText
+                    )
+                }
 //        }
 //        }
 //                }
@@ -165,8 +218,18 @@ class AdventureMapView @JvmOverloads constructor(
      * @param event The motion event.
      * @return True if the event was handled, false otherwise.
      */
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
-        return super.onTouchEvent(event)
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.action == MotionEvent.ACTION_DOWN) {
+            val column = max((event.x / cellWidth).toInt() - 10, 0)
+            val row = min((event.y / cellHeight).toInt() + 30, cellsGrid.size)
+            val selectedCell: Int = cellsGrid[column][row]
+            if (selectedCell > -1) {
+                val roomDetails: RoomDetails = (roomsGraph[selectedCell]?.get(0) as RoomDetails)
+                UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Okay", null)
+            }
+            performClick()
+        }
+        return true
     }
 
     /**

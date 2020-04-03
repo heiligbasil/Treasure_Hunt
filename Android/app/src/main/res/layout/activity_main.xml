@@ -5,9 +5,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-
+    android:background="@drawable/stone"
     tools:context=".views.MainActivity">
-    <!--    android:background="@drawable/stone"-->
+
     <FrameLayout
         android:id="@+id/frame_room_info"
         android:layout_width="120dp"
@@ -32,7 +32,7 @@
                 android:layout_height="match_parent"
                 android:background="@color/colorCloudFade"
                 android:fontFamily="sans-serif-smallcaps"
-                android:maxLines="50"
+                android:maxLines="500"
                 android:textColor="@color/colorRuby"
                 android:textFontWeight="900"
                 android:textSize="10sp" />
@@ -194,10 +194,25 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorAmberFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Init"
+                        android:textAllCaps="false"
+                        android:textColor="@color/colorRuby"
+                        android:textFontWeight="900"
+                        android:textSize="11sp" />
+
+                    <Button
+                        android:id="@+id/button_traverse"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="1dp"
+                        android:height="16dp"
+                        android:background="@color/colorPrimaryFade"
+                        android:fontFamily="cursive"
+                        android:minHeight="0dp"
+                        android:text="Traverse"
                         android:textAllCaps="false"
                         android:textColor="@color/colorRuby"
                         android:textFontWeight="900"
@@ -239,7 +254,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorAmberFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Status"
@@ -314,7 +329,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorAmberFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Examine"
@@ -354,27 +369,12 @@
                         android:textSize="11sp" />
 
                     <Button
-                        android:id="@+id/button_fly"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="1dp"
-                        android:height="16dp"
-                        android:background="@color/colorForestFade"
-                        android:fontFamily="cursive"
-                        android:minHeight="0dp"
-                        android:text="Fly"
-                        android:textAllCaps="false"
-                        android:textColor="@color/colorRuby"
-                        android:textFontWeight="900"
-                        android:textSize="11sp" />
-
-                    <Button
                         android:id="@+id/button_dash"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorSkyFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Dash"
@@ -449,7 +449,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorSkyFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Warp"
@@ -479,7 +479,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorCupidFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Mine"
@@ -494,7 +494,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorCupidFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Totals"
@@ -509,7 +509,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorCupidFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Last proof"
@@ -524,7 +524,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="1dp"
                         android:height="16dp"
-                        android:background="@color/colorForestFade"
+                        android:background="@color/colorCupidFade"
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Get balance"
@@ -559,12 +559,13 @@
             <TextView
                 android:id="@+id/text_log"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:background="@color/colorRubyFade"
                 android:fontFamily="sans-serif-smallcaps"
-                android:maxLines="1000"
+                android:maxLines="99999"
                 android:textColor="@color/colorRuby"
                 android:textFontWeight="900"
+                android:overScrollMode="always"
                 android:textSize="10sp" />
         </androidx.core.widget.NestedScrollView>
     </FrameLayout>
