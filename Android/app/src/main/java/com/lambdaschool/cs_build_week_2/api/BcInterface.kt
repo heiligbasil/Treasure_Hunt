@@ -17,7 +17,7 @@ interface BcTotalsInterface {
 
 interface BcLastProofInterface {
     @GET("bc/last_proof/")
-    fun getMove(): Call<Proof>
+    fun getLastProof(): Call<Proof>
 }
 
 interface BcGetBalanceInterface {

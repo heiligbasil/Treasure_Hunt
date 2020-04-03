@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-            moveToUnexploredAutomated(pauseInSeconds = 8)
+            moveToUnexploredAutomated(pauseInSeconds = 16)
 //            moveToSpecificRoomAutomated(1, pauseInSeconds = 16)
         }
         button_take.setOnClickListener {
@@ -135,7 +135,7 @@ class MainActivity : AppCompatActivity() {
         button_undress.setOnClickListener {}
         button_examine.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
-            if (getCurrentRoomDetails().title=="Wishing Well") {
+            if (getCurrentRoomDetails().title == "Wishing Well") {
                 val wishingWell: Treasure = Treasure("well")
                 networkPostExamineShort(wishingWell)
             } else {
@@ -167,10 +167,8 @@ class MainActivity : AppCompatActivity() {
         button_recall.setOnClickListener {}
         button_mine.setOnClickListener {}
         button_totals.setOnClickListener {}
-        button_last_proof.setOnClickListener {}
-        button_get_balance.setOnClickListener {
-            networkGetBalance()
-        }
+        button_last_proof.setOnClickListener { networkGetLastProof() }
+        button_get_balance.setOnClickListener { networkGetBalance() }
 
 
     }
@@ -193,6 +191,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -203,6 +202,47 @@ class MainActivity : AppCompatActivity() {
                     text_log.append("Code ${response.code()}: Init success!\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, "${response.code()}: Init success!")
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkGetLastProof() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: BcLastProofInterface = retrofit.create(BcLastProofInterface::class.java)
+        val call: Call<Proof> = service.getLastProof()
+        call.enqueue(object : Callback<Proof> {
+            override fun onFailure(call: Call<Proof>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<Proof>, response: Response<Proof>) {
+                if (response.isSuccessful) {
+                    val responseBody: Proof = response.body() as Proof
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    text_log.append("Code ${response.code()}: Init success!\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, "${response.code()}: Get last proof success!")
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
                     val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
@@ -235,6 +275,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<Balance>, response: Response<Balance>) {
                 if (response.isSuccessful) {
                     val responseBody: Balance = response.body() as Balance
@@ -362,6 +403,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<Status>, response: Response<Status>) {
                 if (response.isSuccessful) {
                     val responseBody: Status = response.body() as Status
@@ -406,6 +448,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -453,6 +496,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -500,6 +544,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -547,6 +592,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -594,6 +640,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -641,6 +688,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<ExamineShort>, response: Response<ExamineShort>) {
                 if (response.isSuccessful) {
                     val responseBody: ExamineShort = response.body() as ExamineShort
@@ -689,6 +737,7 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
+
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails

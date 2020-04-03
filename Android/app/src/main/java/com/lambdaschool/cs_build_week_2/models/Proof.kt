@@ -16,11 +16,24 @@ class Proof {
     @Expose
     var cooldown: Double? = null
 
+    @SerializedName("errors")
+    @Expose
+    var errors: List<String>? = null
+
     @SerializedName("messages")
     @Expose
     var messages: List<String>? = null
 
-    @SerializedName("errors")
-    @Expose
-    var errors: List<String>? = null
+    /**
+     * Returns a string representation of the object.
+     */
+    override fun toString(): String {
+        val sb: StringBuilder = java.lang.StringBuilder()
+        sb.appendln("Proof: $proof")
+        sb.appendln("Difficulty: $difficulty")
+        sb.appendln("Cooldown: $cooldown")
+        sb.appendln("Errors: ${errors?.joinToString()}")
+        sb.append("Messages: ${messages?.joinToString()}")
+        return sb.toString()
+    }
 }
