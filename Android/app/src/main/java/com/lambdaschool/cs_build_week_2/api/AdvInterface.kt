@@ -1,9 +1,6 @@
 package com.lambdaschool.cs_build_week_2.api
 
-import com.lambdaschool.cs_build_week_2.models.MoveWisely
-import com.lambdaschool.cs_build_week_2.models.RoomDetails
-import com.lambdaschool.cs_build_week_2.models.Status
-import com.lambdaschool.cs_build_week_2.models.Treasure
+import com.lambdaschool.cs_build_week_2.models.*
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -57,6 +54,11 @@ interface UndressInterface {
 interface ExamineInterface {
     @POST("adv/examine/")
     fun postExamine(@Body treasure: Treasure): Call<RoomDetails>
+}
+
+interface ExamineShortInterface {
+    @POST("adv/examine/")
+    fun postExamineShort(@Body treasure: Treasure): Call<ExamineShort>
 }
 
 interface ChangeNameInterface {

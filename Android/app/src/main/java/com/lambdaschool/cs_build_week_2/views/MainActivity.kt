@@ -71,8 +71,8 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-//            moveToUnexploredAutomated(pauseInSeconds = 8)
-            moveToSpecificRoomAutomated(472, pauseInSeconds = 8)
+            moveToUnexploredAutomated(pauseInSeconds = 8)
+//            moveToSpecificRoomAutomated(1, pauseInSeconds = 16)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -135,15 +135,20 @@ class MainActivity : AppCompatActivity() {
         button_undress.setOnClickListener {}
         button_examine.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
-            val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
-            val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
-            val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
-            val combined = roomItems + players + inventoryItems
-            if (combined.isNotEmpty()) {
-                val treasure: Treasure = Treasure(combined.random())
-                networkPostExamineTreasure(treasure)
+            if (getCurrentRoomDetails().title=="Wishing Well") {
+                val wishingWell: Treasure = Treasure("well")
+                networkPostExamineShort(wishingWell)
             } else {
-                UserInteraction.inform(this, "Nothing to Examine!")
+                val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
+                val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
+                val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
+                val combined = roomItems + players + inventoryItems
+                if (combined.isNotEmpty()) {
+                    val treasure: Treasure = Treasure(combined.random())
+                    networkPostExamineTreasure(treasure)
+                } else {
+                    UserInteraction.inform(this, "Nothing to Examine!")
+                }
             }
         }
         button_change_name.setOnClickListener {
@@ -186,7 +191,6 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -316,7 +320,6 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
             override fun onResponse(call: Call<Status>, response: Response<Status>) {
                 if (response.isSuccessful) {
                     val responseBody: Status = response.body() as Status
@@ -361,7 +364,6 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -409,7 +411,6 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -457,7 +458,6 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -505,7 +505,6 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
@@ -553,10 +552,56 @@ class MainActivity : AppCompatActivity() {
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
-
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Examine failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Examine success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostExamineShort(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: ExamineShortInterface = retrofit.create(ExamineShortInterface::class.java)
+        val call: Call<ExamineShort> = service.postExamineShort(treasure)
+        call.enqueue(object : Callback<ExamineShort> {
+            override fun onFailure(call: Call<ExamineShort>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+            override fun onResponse(call: Call<ExamineShort>, response: Response<ExamineShort>) {
+                if (response.isSuccessful) {
+                    val responseBody: ExamineShort = response.body() as ExamineShort
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     var message: String = "Code ${response.code()}: "
@@ -765,7 +810,7 @@ class MainActivity : AppCompatActivity() {
             "Mt. Holloway" -> "#${Color.GRAY.toHexString()}"
             "The Peak of Mt. Holloway" -> "#${Color.DKGRAY.toHexString()}"
             "Pirate Ry's" -> "#${Color.BLACK.toHexString()}"
-            "z" -> "#${Color.RED.toHexString()}"
+            "Wishing Well" -> "#65A67A06"
             "z" -> "#${Color.RED.toHexString()}"
             "z" -> "#${Color.RED.toHexString()}"
             "z" -> "#${Color.RED.toHexString()}"

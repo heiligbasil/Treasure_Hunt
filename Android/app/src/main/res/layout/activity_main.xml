@@ -32,7 +32,7 @@
                 android:layout_height="match_parent"
                 android:background="@color/colorCloudFade"
                 android:fontFamily="sans-serif-smallcaps"
-                android:maxLines="50"
+                android:maxLines="500"
                 android:textColor="@color/colorRuby"
                 android:textFontWeight="900"
                 android:textSize="10sp" />
