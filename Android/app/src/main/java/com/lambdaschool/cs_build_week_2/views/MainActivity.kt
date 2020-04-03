@@ -34,8 +34,9 @@ import kotlin.collections.HashMap
 class MainActivity : AppCompatActivity() {
 
     companion object {
-        val traversalTimer = Timer()
-        val timerHandler = Handler()
+        var traversalTimer = Timer()
+        val timerHandlerSpecific = Handler()
+        val timerHandlerUnexplored = Handler()
         var cooldownTimer: CountDownTimer? = null
         var cooldownAmount: Double? = 0.0
         var automatedPath: ArrayList<Int?> = arrayListOf()
@@ -68,6 +69,7 @@ class MainActivity : AppCompatActivity() {
         button_move_east.setOnClickListener { moveInDirection("e") }
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
+        button_traverse.setOnClickListener { moveToUnexploredAutomated() }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
@@ -79,9 +81,7 @@ class MainActivity : AppCompatActivity() {
                 UserInteraction.inform(this, "Nothing to take!")
             }
         }
-        button_drop.setOnClickListener {
-            moveToSpecificRoomAutomated(1)
-        }
+        button_drop.setOnClickListener { }
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -559,12 +559,37 @@ class MainActivity : AppCompatActivity() {
         cooldownTimer?.start()
     }
 
-    private fun runNextAutomatedStep() {
-        timerHandler.post(myRunnable)
+    private fun runNextAutomatedStep(keepGoing: Boolean) {
+        if (keepGoing)
+            timerHandlerUnexplored.post(myRunnableUnexplored)
+        else
+            timerHandlerSpecific.post(myRunnableSpecific)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
-    val myRunnable = Runnable {
+    val myRunnableUnexplored = Runnable {
+        val destinationRoom: Int? = automatedPath.last()
+        var direction: String? = getDirectionForRoom(automatedPath.removeFirst())
+        if (direction == null) {
+            direction = getCurrentRoomDetails().exits?.random()
+        }
+        when (direction) {
+            "n" -> button_move_north.performClick()
+            "s" -> button_move_south.performClick()
+            "e" -> button_move_east.performClick()
+            "w" -> button_move_west.performClick()
+        }
+        if (automatedPath.isEmpty()) {
+            traversalTimer.cancel()
+        }
+
+        if (automatedPath.isEmpty()) {
+            moveToUnexploredAutomated()
+        }
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    val myRunnableSpecific = Runnable {
         val destinationRoom: Int? = automatedPath.last()
         val direction: String? = getDirectionForRoom(automatedPath.removeFirst())
         if (direction == null) {
@@ -592,11 +617,30 @@ class MainActivity : AppCompatActivity() {
         return roomsGraph[currentRoomId]?.get(0) as RoomDetails
     }
 
+    private fun moveToUnexploredAutomated() {
+        if (currentRoomId == -1) {
+            UserInteraction.inform(this, "Please do a GET Init first...")
+            return
+        }
+
+        automatedPath = bfs(null)
+        traversalTimer = Timer()
+        traversalTimer.schedule(object : TimerTask() {
+            override fun run() {
+                runNextAutomatedStep(true)
+            }
+        }, 16000, 16000)
+    }
+
     private fun moveToSpecificRoomAutomated(roomId: Int?) {
+        if (currentRoomId == -1) {
+            UserInteraction.inform(this, "Please do a GET Init first...")
+            return
+        }
         automatedPath = bfs(roomId)
         traversalTimer.schedule(object : TimerTask() {
             override fun run() {
-                runNextAutomatedStep()
+                runNextAutomatedStep(false)
             }
         }, 0, 16000)
 
