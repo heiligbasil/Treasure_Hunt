@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.os.Handler
 import android.view.View
+import android.widget.ScrollView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -71,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
 //            moveToUnexploredAutomated()
-            moveToSpecificRoomAutomated(1)
+            moveToSpecificRoomAutomated(22)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -131,7 +132,10 @@ class MainActivity : AppCompatActivity() {
                 UserInteraction.inform(this, "Nothing to Examine!")
             }
         }
-        button_change_name.setOnClickListener {}
+        button_change_name.setOnClickListener {
+            val treasureName: Treasure = Treasure("Basil der Grosse", "aye")
+            networkPostChangeName(treasureName)
+        }
         button_pray.setOnClickListener {}
         button_fly.setOnClickListener {}
         button_dash.setOnClickListener {}
@@ -164,6 +168,7 @@ class MainActivity : AppCompatActivity() {
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
@@ -175,6 +180,7 @@ class MainActivity : AppCompatActivity() {
                     SharedPrefs.saveState()
                     text_room_info.text = responseBody.toString()
                     text_log.append("Code ${response.code()}: Init success!\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, "${response.code()}: Init success!")
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
@@ -182,6 +188,7 @@ class MainActivity : AppCompatActivity() {
                     val errorText = "${response.message()} ${response.code()}:\n$errorBody"
                     cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, errorText)
                 }
                 showCooldownTimer()
@@ -251,6 +258,7 @@ class MainActivity : AppCompatActivity() {
         call.enqueue(object : Callback<Status> {
             override fun onFailure(call: Call<Status>, t: Throwable) {
                 text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
@@ -263,6 +271,7 @@ class MainActivity : AppCompatActivity() {
                     val message: String =
                         "Code ${response.code()}: Inventory status success!\n${responseBody.messages?.joinToString("\n")}"
                     text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
@@ -270,6 +279,7 @@ class MainActivity : AppCompatActivity() {
                     val errorText = "${response.message()} ${response.code()}:\n$errorBody"
                     cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, errorText)
                 }
                 showCooldownTimer()
@@ -293,6 +303,7 @@ class MainActivity : AppCompatActivity() {
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
@@ -308,6 +319,7 @@ class MainActivity : AppCompatActivity() {
                         "Buy success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
@@ -315,6 +327,55 @@ class MainActivity : AppCompatActivity() {
                     val errorText = "${response.message()} ${response.code()}:\n$errorBody"
                     cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostChangeName(treasureName: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: ChangeNameInterface = retrofit.create(ChangeNameInterface::class.java)
+        val call: Call<RoomDetails> = service.postChangeName(treasureName)
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Change name failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Change name success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, errorText)
                 }
                 showCooldownTimer()
@@ -338,6 +399,7 @@ class MainActivity : AppCompatActivity() {
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
@@ -353,6 +415,7 @@ class MainActivity : AppCompatActivity() {
                         "Sell success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
@@ -360,6 +423,7 @@ class MainActivity : AppCompatActivity() {
                     val errorText = "${response.message()} ${response.code()}:\n$errorBody"
                     cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, errorText)
                 }
                 showCooldownTimer()
@@ -383,6 +447,7 @@ class MainActivity : AppCompatActivity() {
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
@@ -398,6 +463,7 @@ class MainActivity : AppCompatActivity() {
                         "Examine success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
@@ -405,6 +471,7 @@ class MainActivity : AppCompatActivity() {
                     val errorText = "${response.message()} ${response.code()}:\n$errorBody"
                     cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, errorText)
                 }
                 showCooldownTimer()
@@ -428,6 +495,7 @@ class MainActivity : AppCompatActivity() {
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
                 text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
@@ -443,6 +511,7 @@ class MainActivity : AppCompatActivity() {
                         "Take success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
@@ -450,6 +519,7 @@ class MainActivity : AppCompatActivity() {
                     val errorText = "${response.message()} ${response.code()}:\n$errorBody"
                     cooldownAmount = errorBody.cooldown
                     text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, errorText)
                 }
                 showCooldownTimer()
@@ -469,6 +539,7 @@ class MainActivity : AppCompatActivity() {
             networkThread.join()
             text_room_info.text = responseRoomInfo
             text_log.append(responseMessage)
+            scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
             UserInteraction.inform(applicationContext, responseMessage)
             showCooldownTimer()
         } else {
@@ -649,7 +720,7 @@ class MainActivity : AppCompatActivity() {
             override fun run() {
                 runNextAutomatedStep(false)
             }
-        }, 0, 16000)
+        }, 0, 21000)
 
         /*val pathToRoom: ArrayList<Int?> = bfs(roomId)
         pathToRoom.forEach {

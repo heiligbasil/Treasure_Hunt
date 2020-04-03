@@ -60,8 +60,8 @@ interface ExamineInterface {
 }
 
 interface ChangeNameInterface {
-    @GET("adv/change_name/")
-    fun getChangeName(): Call<RoomDetails>
+    @POST("adv/change_name/")
+    fun postChangeName(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface PrayInterface {
