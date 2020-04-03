@@ -72,14 +72,15 @@ class MainActivity : AppCompatActivity() {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
             if (roomItems.isNotEmpty()) {
-                val treasure: Treasure = Treasure(roomItems[0])
+                val treasure: Treasure = Treasure(roomItems.first())
+                roomItems.removeAt(0)
                 networkPostTakeTreasure(treasure)
             } else {
                 UserInteraction.inform(this, "Nothing to take!")
             }
         }
         button_drop.setOnClickListener {
-            moveToSpecificRoomAutomated(486)
+            moveToSpecificRoomAutomated(1)
         }
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {
@@ -577,12 +578,17 @@ class MainActivity : AppCompatActivity() {
         if (automatedPath.isEmpty()) {
             traversalTimer.cancel()
         }
-        if (destinationRoom == currentRoomId) {
+        val exploredWisely: Boolean = getCurrentRoomDetails().messages?.last()?.contains("Wise") ?: false
+        if ((destinationRoom == currentRoomId) || (destinationRoom == null && !exploredWisely)) {
             UserInteraction.askQuestion(this, "Room Found", "Room #$destinationRoom has been found!", "Okay", null)
         }
     }
 
-    private fun moveToSpecificRoomAutomated(roomId: Int) {
+    private fun getCurrentRoomDetails(): RoomDetails {
+        return roomsGraph[currentRoomId]?.get(0) as RoomDetails
+    }
+
+    private fun moveToSpecificRoomAutomated(roomId: Int?) {
         automatedPath = bfs(roomId)
         traversalTimer.schedule(object : TimerTask() {
             override fun run() {
@@ -611,7 +617,7 @@ class MainActivity : AppCompatActivity() {
         }*/
     }
 
-    private fun bfs(destinationRoom: Int): ArrayList<Int?> {
+    private fun bfs(destinationRoom: Int?): ArrayList<Int?> {
         val queue: Queue<ArrayList<Int?>> = LinkedList()
         queue.add(arrayListOf(currentRoomId))
         val contemplated: MutableSet<Int?> = mutableSetOf()
