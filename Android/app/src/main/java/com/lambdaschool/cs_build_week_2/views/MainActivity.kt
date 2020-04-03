@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity() {
         button_traverse.setOnClickListener {
 //            if (button_traverse.background.col==Color.BLACK)
             moveToUnexploredAutomated(pauseInSeconds = 16)
-//            moveToSpecificRoomAutomated(1, pauseInSeconds = 23)
+//            moveToSpecificRoomAutomated(499, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -161,13 +161,22 @@ class MainActivity : AppCompatActivity() {
         button_pray.setOnClickListener {
             networkPostPray()
         }
-        button_dash.setOnClickListener {}
+        button_dash.setOnClickListener {
+            val directionAndCount = hashMapOf<String, Int>(Pair("n", 0), Pair("s", 0), Pair("e", 0), Pair("w", 0))
+            directionAndCount.forEach {
+
+//                val roomId=getDirectionsFromRoom(currentRoomId)[it]
+//                directionAndCount[it]+=1
+            }
+            val dash: Dash
+//            networkPostDash()
+        }
         button_player_state.setOnClickListener {}
         button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Tiny Treasure")) }
         button_carry.setOnClickListener {}
         button_receive.setOnClickListener {}
         button_warp.setOnClickListener {}
-        button_recall.setOnClickListener {}
+        button_recall.setOnClickListener { networkPostRecall() }
         button_mine.setOnClickListener {}
         button_totals.setOnClickListener {}
         button_last_proof.setOnClickListener { networkGetLastProof() }
@@ -480,6 +489,54 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun networkPostRecall() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: RecallInterface = retrofit.create(RecallInterface::class.java)
+        val call: Call<RoomDetails> = service.postRecall()
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Recall failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Recall success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
     private fun networkPostBuyTreasure(treasure: Treasure) {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
@@ -654,6 +711,54 @@ class MainActivity : AppCompatActivity() {
                         "Transmogrify failure!\n${responseBody.errors?.joinToString("\n")}"
                     } else {
                         "Transmogrify success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostDash(dash: Dash) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: DashInterface = retrofit.create(DashInterface::class.java)
+        val call: Call<RoomDetails> = service.postDash(dash)
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Dash failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Dash success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
@@ -949,13 +1054,17 @@ class MainActivity : AppCompatActivity() {
             "JKMT Donuts" -> "#4DF18C8C"
             "A brightly lit room" -> "#FFAB00"
             "Arron's Athenaeum" -> "#4D0091EA"
-            "The Peak of Mt. Holloway" -> "#${Color.BLACK.toHexString()}"
+            "The Peak of Mt. Holloway" -> "#4D4B80A1"
             "Mt. Holloway" -> "#${Color.DKGRAY.toHexString()}"
-            "Pirate Ry's" -> "#${Color.BLACK.toHexString()}"
+            "Pirate Ry's" -> "#98000000"
             "Wishing Well" -> "#65A67A06"
             "Red Egg Pizza Parlor" -> "#4DDD2C00"
             "The Transmogriphier" -> "#${Color.MAGENTA.toHexString()}"
-            "z" -> "#${Color.RED.toHexString()}"
+            "Sandofsky's Sanctum" -> "#BF0878BD"
+            "A Dark Cave" -> "#BE6200EA"
+            "Glasowyn's Grave" -> "#BF9C4607"
+            "Linh's Shrine" -> "#7FFFD600"
+            "Fully Shrine" -> "#7FB3FF00"
             else -> "#${Color.RED.toHexString()}"
         }
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), cellColor)
@@ -987,21 +1096,25 @@ class MainActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalStdlibApi::class)
     val myRunnableUnexplored = Runnable {
-        val destinationRoom: Int? = automatedPath.last()
-        var direction: String? = getDirectionForRoom(automatedPath.removeFirst())
-        if (direction == null) {
-            direction = getCurrentRoomDetails().exits?.random()
-        }
-        when (direction) {
-            "n" -> button_move_north.performClick()
-            "s" -> button_move_south.performClick()
-            "e" -> button_move_east.performClick()
-            "w" -> button_move_west.performClick()
+        if (automatedPath.isNotEmpty()) {
+            var direction: String? = getDirectionForRoom(automatedPath.removeFirst())
+            if (direction == null) {
+                direction = getCurrentRoomDetails().exits?.random()
+            }
+            when (direction) {
+                "n" -> button_move_north.performClick()
+                "s" -> button_move_south.performClick()
+                "e" -> button_move_east.performClick()
+                "w" -> button_move_west.performClick()
+            }
+        } else {
+            UserInteraction.inform(this, "There is nowhere to go...")
+            traversalTimer.cancel()
+            return@Runnable
         }
         if (automatedPath.isEmpty()) {
             traversalTimer.cancel()
         }
-
         if (automatedPath.isEmpty()) {
             moveToUnexploredAutomated()
         }
@@ -1054,6 +1167,9 @@ class MainActivity : AppCompatActivity() {
     private fun moveToSpecificRoomAutomated(roomId: Int?, pauseInSeconds: Int = 16) {
         if (currentRoomId == -1) {
             UserInteraction.inform(this, "Please do a GET Init first...")
+            return
+        } else if (roomId == currentRoomId) {
+            UserInteraction.askQuestion(this, "Room Is Here", "You are already at Room #${roomId}!", "Okay", null)
             return
         }
         automatedPath = bfs(roomId)

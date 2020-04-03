@@ -77,8 +77,8 @@ interface FlyInterface {
 }
 
 interface DashInterface {
-    @GET("adv/dash/")
-    fun getDash(): Call<RoomDetails>
+    @POST("adv/dash/")
+    fun postDash(@Body dash: Dash): Call<RoomDetails>
 }
 
 interface PlayerStateInterface {
@@ -107,6 +107,6 @@ interface WarpInterface {
 }
 
 interface RecallInterface {
-    @GET("adv/recall/")
-    fun getRecall(): Call<RoomDetails>
+    @POST("adv/recall/")
+    fun postRecall(): Call<RoomDetails>
 }
