@@ -42,8 +42,8 @@ class AdventureMapView @JvmOverloads constructor(
     private val cellPaintText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         color = Color.BLACK
-        strokeWidth = 1.5F
-        textSize = 21F
+        strokeWidth = 1.2F
+        textSize = 16F
     }
     private val cellPaintDoor = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
