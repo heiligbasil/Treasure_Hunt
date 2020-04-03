@@ -23,8 +23,8 @@ class AdventureMapView @JvmOverloads constructor(
 
     private var cellsGrid: Array<Array<Int>> = Array(1) { Array(1) { -1 } }
     private var calculated = false
-    private var shiftXGridBy: Int = 40
-    private var shiftYGridBy: Int = 10
+    private var shiftXGridBy: Int = 47
+    private var shiftYGridBy: Int = 3
     private var cellWidth = 0
     private var cellHeight = 0
 
@@ -74,7 +74,7 @@ class AdventureMapView @JvmOverloads constructor(
             return
         convertCoordinatesToGrid()
 
-        cellHeight = height / max((cellsGrid.size - ((shiftXGridBy + shiftYGridBy) / 2)), 1)
+        cellHeight = height / max((cellsGrid.size - ((shiftXGridBy + shiftYGridBy) / 2)), 1) + 12
         cellWidth = cellHeight
 //        cellChecked = Array(numColumns) { BooleanArray(numRows) }
 //        cellColors = Array(numColumns) { IntArray(numRows) }
