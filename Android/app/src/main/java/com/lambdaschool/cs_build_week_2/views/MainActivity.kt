@@ -71,9 +71,8 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-//            if (button_traverse.background.col==Color.BLACK)
-            moveToUnexploredAutomated(pauseInSeconds = 16)
-//            moveToSpecificRoomAutomated(499, pauseInSeconds = 8)
+//            moveToUnexploredAutomated(pauseInSeconds = 16)
+            moveToSpecificRoomAutomated(447, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -162,14 +161,22 @@ class MainActivity : AppCompatActivity() {
             networkPostPray()
         }
         button_dash.setOnClickListener {
-            val directionAndCount = hashMapOf<String, Int>(Pair("n", 0), Pair("s", 0), Pair("e", 0), Pair("w", 0))
-            directionAndCount.forEach {
-
-//                val roomId=getDirectionsFromRoom(currentRoomId)[it]
-//                directionAndCount[it]+=1
+            val directionAndPath: HashMap<String, ArrayList<Int?>> =
+                hashMapOf(Pair("n", arrayListOf()), Pair("s", arrayListOf()), Pair("e", arrayListOf()), Pair("w", arrayListOf()))
+            directionAndPath.forEach { eachDirection ->
+                var roomId: Int? = currentRoomId
+                do {
+                    val directionsFromRoom: HashMap<String, Int?> = getDirectionsFromRoom(roomId)
+                    roomId = directionsFromRoom[eachDirection.key]
+                    if (roomId != null)
+                        directionAndPath[eachDirection.key]?.add(roomId)
+                } while (roomId != null)
             }
-            val dash: Dash
-//            networkPostDash()
+            val sortedHashMap = directionAndPath.toSortedMap()
+            val direction: String = sortedHashMap.firstKey()
+            val path: ArrayList<Int?>? = sortedHashMap[direction]
+            val dash: Dash = Dash(direction, path?.size.toString(), path?.joinToString(separator = ",") ?: "")
+            networkPostDash(dash)
         }
         button_player_state.setOnClickListener {}
         button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Tiny Treasure")) }
@@ -520,6 +527,7 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         "Recall success!\n${responseBody.messages?.joinToString("\n")}"
                     }
+                    updateGraphDetails(responseBody)
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
@@ -760,6 +768,7 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         "Dash success!\n${responseBody.messages?.joinToString("\n")}"
                     }
+                    updateGraphDetails(responseBody)
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
