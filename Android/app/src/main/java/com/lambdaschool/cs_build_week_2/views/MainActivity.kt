@@ -168,7 +168,9 @@ class MainActivity : AppCompatActivity() {
         button_mine.setOnClickListener {}
         button_totals.setOnClickListener {}
         button_last_proof.setOnClickListener {}
-        button_get_balance.setOnClickListener {}
+        button_get_balance.setOnClickListener {
+            networkGetBalance()
+        }
 
 
     }
@@ -201,6 +203,46 @@ class MainActivity : AppCompatActivity() {
                     text_log.append("Code ${response.code()}: Init success!\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, "${response.code()}: Init success!")
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkGetBalance() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: BcGetBalanceInterface = retrofit.create(BcGetBalanceInterface::class.java)
+        val call: Call<Balance> = service.getBalance()
+        call.enqueue(object : Callback<Balance> {
+            override fun onFailure(call: Call<Balance>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+            override fun onResponse(call: Call<Balance>, response: Response<Balance>) {
+                if (response.isSuccessful) {
+                    val responseBody: Balance = response.body() as Balance
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    text_log.append("Code ${response.code()}: Init success!\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, "${response.code()}: Get balance success!")
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
                     val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)

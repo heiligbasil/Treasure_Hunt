@@ -1,5 +1,6 @@
 package com.lambdaschool.cs_build_week_2.api
 
+import com.lambdaschool.cs_build_week_2.models.Balance
 import com.lambdaschool.cs_build_week_2.models.Proof
 import retrofit2.Call
 import retrofit2.http.GET
@@ -21,6 +22,6 @@ interface BcLastProofInterface {
 
 interface BcGetBalanceInterface {
     @GET("bc/get_balance/")
-    fun getMove(): Call<Proof>
+    fun getBalance(): Call<Balance>
 }
 
