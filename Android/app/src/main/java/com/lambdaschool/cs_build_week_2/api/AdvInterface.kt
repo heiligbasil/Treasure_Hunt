@@ -87,8 +87,8 @@ interface PlayerStateInterface {
 }
 
 interface TransmogrifyInterface {
-    @GET("adv/transmogrify/")
-    fun getTransmogrify(): Call<RoomDetails>
+    @POST("adv/transmogrify/")
+    fun postTransmogrify(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface CarryInterface {

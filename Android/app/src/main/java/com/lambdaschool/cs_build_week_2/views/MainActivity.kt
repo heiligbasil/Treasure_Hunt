@@ -71,8 +71,9 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
+//            if (button_traverse.background.col==Color.BLACK)
             moveToUnexploredAutomated(pauseInSeconds = 16)
-//            moveToSpecificRoomAutomated(1, pauseInSeconds = 16)
+//            moveToSpecificRoomAutomated(1, pauseInSeconds = 23)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -103,8 +104,12 @@ class MainActivity : AppCompatActivity() {
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
-            val treasure: Treasure = Treasure("JKMT Donuts")
-            networkPostBuyTreasure(treasure)
+            var whatToBuy: String = ""
+            if (getCurrentRoomDetails().title == "Red Egg Pizza Parlor")
+                whatToBuy = "Pizza"
+            else if (getCurrentRoomDetails().title == "JKMT Donuts")
+                whatToBuy = "Donut"
+            networkPostBuyTreasure(Treasure(whatToBuy, "yes"))
         }
         button_sell.setOnClickListener {
             if (inventoryStatus.name != null) {
@@ -136,9 +141,10 @@ class MainActivity : AppCompatActivity() {
         button_examine.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             if (getCurrentRoomDetails().title == "Wishing Well") {
-                val wishingWell: Treasure = Treasure("well")
-                networkPostExamineShort(wishingWell)
-            } else {
+                networkPostExamineShort(Treasure("Well"))
+            } /*else if (getCurrentRoomDetails().title=="Red Egg Pizza Parlor") {
+                networkPostExamineShort(Treasure("Pizza Parlor"))
+            }*/ else {
                 val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
                 val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
                 val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
@@ -151,16 +157,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        button_change_name.setOnClickListener {
-            val treasureName: Treasure = Treasure("Basil der Grosse", "aye")
-            networkPostChangeName(treasureName)
-        }
+        button_change_name.setOnClickListener { networkPostChangeName(Treasure("Basil der Grosse", "aye")) }
         button_pray.setOnClickListener {
             networkPostPray()
         }
         button_dash.setOnClickListener {}
         button_player_state.setOnClickListener {}
-        button_transmogrify.setOnClickListener {}
+        button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Tiny Treasure")) }
         button_carry.setOnClickListener {}
         button_receive.setOnClickListener {}
         button_warp.setOnClickListener {}
@@ -621,6 +624,54 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun networkPostTransmogrify(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: TransmogrifyInterface = retrofit.create(TransmogrifyInterface::class.java)
+        val call: Call<RoomDetails> = service.postTransmogrify(treasure)
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Transmogrify failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Transmogrify success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
     private fun networkPostExamineTreasure(treasure: Treasure) {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
@@ -893,17 +944,17 @@ class MainActivity : AppCompatActivity() {
         val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
         val cellColor: String = when (extractedRoomDetails.title) {
-            "A misty room" -> "#${Color.WHITE.toHexString()}"
-            "Shop" -> "#${Color.LTGRAY.toHexString()}"
+            "A misty room" -> "#${Color.LTGRAY.toHexString()}"
+            "Shop" -> "#${Color.GREEN.toHexString()}"
             "JKMT Donuts" -> "#4DF18C8C"
-            "A brightly lit room" -> "#${Color.YELLOW.toHexString()}"
-            "Arron's Athenaeum" -> "#${Color.BLUE.toHexString()}"
-            "Mt. Holloway" -> "#${Color.GRAY.toHexString()}"
-            "The Peak of Mt. Holloway" -> "#${Color.DKGRAY.toHexString()}"
+            "A brightly lit room" -> "#FFAB00"
+            "Arron's Athenaeum" -> "#4D0091EA"
+            "The Peak of Mt. Holloway" -> "#${Color.BLACK.toHexString()}"
+            "Mt. Holloway" -> "#${Color.DKGRAY.toHexString()}"
             "Pirate Ry's" -> "#${Color.BLACK.toHexString()}"
             "Wishing Well" -> "#65A67A06"
-            "z" -> "#${Color.RED.toHexString()}"
-            "z" -> "#${Color.RED.toHexString()}"
+            "Red Egg Pizza Parlor" -> "#4DDD2C00"
+            "The Transmogriphier" -> "#${Color.MAGENTA.toHexString()}"
             "z" -> "#${Color.RED.toHexString()}"
             else -> "#${Color.RED.toHexString()}"
         }
@@ -991,7 +1042,6 @@ class MainActivity : AppCompatActivity() {
             UserInteraction.inform(this, "Please do a GET Init first...")
             return
         }
-
         automatedPath = bfs(null)
         traversalTimer = Timer()
         traversalTimer.schedule(object : TimerTask() {
@@ -1007,6 +1057,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         automatedPath = bfs(roomId)
+        traversalTimer = Timer()
         traversalTimer.schedule(object : TimerTask() {
             override fun run() {
                 runNextAutomatedStep(false)
