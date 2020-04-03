@@ -71,7 +71,7 @@ class MainActivity : AppCompatActivity() {
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
 //            moveToUnexploredAutomated()
-            moveToSpecificRoomAutomated(399)
+            moveToSpecificRoomAutomated(1)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is

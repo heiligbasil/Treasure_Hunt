@@ -577,7 +577,7 @@
                 android:layout_height="match_parent"
                 android:background="@color/colorRubyFade"
                 android:fontFamily="sans-serif-smallcaps"
-                android:maxLines="1000"
+                android:maxLines="99999"
                 android:textColor="@color/colorRuby"
                 android:textFontWeight="900"
                 android:textSize="10sp" />
