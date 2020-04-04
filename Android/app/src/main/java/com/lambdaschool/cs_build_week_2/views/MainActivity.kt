@@ -15,6 +15,7 @@ import com.google.gson.reflect.TypeToken
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.*
 import com.lambdaschool.cs_build_week_2.models.*
+import com.lambdaschool.cs_build_week_2.utils.Mining
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.synthetic.main.activity_main.*
@@ -193,7 +194,10 @@ class MainActivity : AppCompatActivity() {
         button_receive.setOnClickListener { networkPostReceive() }
         button_warp.setOnClickListener { networkPostWarp() }
         button_recall.setOnClickListener { networkPostRecall() }
-        button_mine.setOnClickListener {}
+        button_mine.setOnClickListener {
+            val proofOfWork = Mining.proofOfWork(59372620, 6)
+            networkPostMine(Mine(proofOfWork))
+        }
         button_totals.setOnClickListener {}
         button_last_proof.setOnClickListener { networkGetLastProof() }
         button_get_balance.setOnClickListener { networkGetBalance() }
@@ -1114,6 +1118,54 @@ class MainActivity : AppCompatActivity() {
                         "Warp failure!\n${responseBody.errors?.joinToString("\n")}"
                     } else {
                         "Warp success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostMine(mine: Mine) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: BcMineInterface = retrofit.create(BcMineInterface::class.java)
+        val call: Call<Proof> = service.postMove(mine)
+        call.enqueue(object : Callback<Proof> {
+            override fun onFailure(call: Call<Proof>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<Proof>, response: Response<Proof>) {
+                if (response.isSuccessful) {
+                    val responseBody: Proof = response.body() as Proof
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Mine failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Mine success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
