@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
 //            moveToUnexploredAutomated(pauseInSeconds = 16)
-            moveToSpecificRoomAutomated(447, pauseInSeconds = 8)
+            moveToSpecificRoomAutomated(399, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -189,8 +189,8 @@ class MainActivity : AppCompatActivity() {
         }
         button_player_state.setOnClickListener {}
         button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Tiny Treasure")) }
-        button_carry.setOnClickListener {}
-        button_receive.setOnClickListener {}
+        button_carry.setOnClickListener { networkPostCarry(Treasure("Tiny Treasure")) }
+        button_receive.setOnClickListener { networkPostReceive() }
         button_warp.setOnClickListener {}
         button_recall.setOnClickListener { networkPostRecall() }
         button_mine.setOnClickListener {}
@@ -970,6 +970,102 @@ class MainActivity : AppCompatActivity() {
                         "Take failure!\n${responseBody.errors?.joinToString("\n")}"
                     } else {
                         "Take success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostCarry(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: CarryInterface = retrofit.create(CarryInterface::class.java)
+        val call: Call<RoomDetails> = service.postCarry(treasure)
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Carry failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Carry success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostReceive() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: ReceiveInterface = retrofit.create(ReceiveInterface::class.java)
+        val call: Call<RoomDetails> = service.postReceive()
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Receive failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Receive success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
