@@ -172,10 +172,19 @@ class MainActivity : AppCompatActivity() {
                         directionAndPath[eachDirection.key]?.add(roomId)
                 } while (roomId != null)
             }
-            val sortedHashMap = directionAndPath.toSortedMap()
-            val direction: String = sortedHashMap.firstKey()
-            val path: ArrayList<Int?>? = sortedHashMap[direction]
-            val dash: Dash = Dash(direction, path?.size.toString(), path?.joinToString(separator = ",") ?: "")
+            val dash: Dash = Dash("", "0", "")
+            val easierListToProcess: HashMap<String, String> = hashMapOf<String, String>()
+            directionAndPath.forEach {
+                easierListToProcess[it.key] = it.value.joinToString(separator = ",")
+                if (it.value.size > dash.num_rooms.toInt()) {
+                    dash.direction = it.key
+                    dash.num_rooms = it.value.size.toString()
+                    dash.next_room_ids = it.value.joinToString(separator = ",")
+                }
+            }
+//            val longestPath: Map.Entry<String, String>? = easierListToProcess.maxBy { it.value.length }
+//            val pathLength: Int = directionAndPath.values.maxBy { it.size }?.size ?: 0
+//            val dash: Dash = Dash(longestPath?.key.toString(), maxPathLength.toString(), longestPath?.value.toString())
             networkPostDash(dash)
         }
         button_player_state.setOnClickListener {}
