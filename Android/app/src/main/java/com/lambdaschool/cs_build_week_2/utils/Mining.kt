@@ -10,7 +10,7 @@ object Mining {
         do {
             val proofHash: String = proofCandidate.toString().sha256()
             proofCandidate++
-        } while (lastProofHash.startsWith(repeatedZeroes) && proofHash.startsWith(repeatedZeroes))
+        } while (!lastProofHash.startsWith(repeatedZeroes) && !proofHash.startsWith(repeatedZeroes))
         return proofCandidate
     }
 

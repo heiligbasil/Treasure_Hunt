@@ -1148,17 +1148,17 @@ class MainActivity : AppCompatActivity() {
             }.build())
             .build()
         val service: BcMineInterface = retrofit.create(BcMineInterface::class.java)
-        val call: Call<Proof> = service.postMove(mine)
-        call.enqueue(object : Callback<Proof> {
-            override fun onFailure(call: Call<Proof>, t: Throwable) {
+        val call: Call<ExamineShort> = service.postMove(mine)
+        call.enqueue(object : Callback<ExamineShort> {
+            override fun onFailure(call: Call<ExamineShort>, t: Throwable) {
                 text_log.append("${t.message}\n")
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
-            override fun onResponse(call: Call<Proof>, response: Response<Proof>) {
+            override fun onResponse(call: Call<ExamineShort>, response: Response<ExamineShort>) {
                 if (response.isSuccessful) {
-                    val responseBody: Proof = response.body() as Proof
+                    val responseBody: ExamineShort = response.body() as ExamineShort
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     var message: String = "Code ${response.code()}: "
