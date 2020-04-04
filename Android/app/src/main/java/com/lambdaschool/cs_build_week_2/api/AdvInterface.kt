@@ -102,8 +102,8 @@ interface ReceiveInterface {
 }
 
 interface WarpInterface {
-    @GET("adv/warp/")
-    fun getWarp(): Call<RoomDetails>
+    @POST("adv/warp/")
+    fun postWarp(): Call<RoomDetails>
 }
 
 interface RecallInterface {

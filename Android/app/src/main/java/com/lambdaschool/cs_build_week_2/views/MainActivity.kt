@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity() {
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
 //            moveToUnexploredAutomated(pauseInSeconds = 16)
-            moveToSpecificRoomAutomated(399, pauseInSeconds = 8)
+            moveToSpecificRoomAutomated(486, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -141,9 +141,9 @@ class MainActivity : AppCompatActivity() {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
             if (getCurrentRoomDetails().title == "Wishing Well") {
                 networkPostExamineShort(Treasure("Well"))
-            } /*else if (getCurrentRoomDetails().title=="Red Egg Pizza Parlor") {
-                networkPostExamineShort(Treasure("Pizza Parlor"))
-            }*/ else {
+            } else if (getCurrentRoomDetails().title == "Arron's Athenaeum") {
+                networkPostExamineShort(Treasure("Book"))
+            } else {
                 val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
                 val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
                 val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
@@ -191,7 +191,7 @@ class MainActivity : AppCompatActivity() {
         button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Tiny Treasure")) }
         button_carry.setOnClickListener { networkPostCarry(Treasure("Tiny Treasure")) }
         button_receive.setOnClickListener { networkPostReceive() }
-        button_warp.setOnClickListener {}
+        button_warp.setOnClickListener { networkPostWarp() }
         button_recall.setOnClickListener { networkPostRecall() }
         button_mine.setOnClickListener {}
         button_totals.setOnClickListener {}
@@ -1066,6 +1066,54 @@ class MainActivity : AppCompatActivity() {
                         "Receive failure!\n${responseBody.errors?.joinToString("\n")}"
                     } else {
                         "Receive success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostWarp() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: WarpInterface = retrofit.create(WarpInterface::class.java)
+        val call: Call<RoomDetails> = service.postWarp()
+        call.enqueue(object : Callback<RoomDetails> {
+            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+                if (response.isSuccessful) {
+                    val responseBody: RoomDetails = response.body() as RoomDetails
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Warp failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Warp success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
