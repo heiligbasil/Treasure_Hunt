@@ -29,6 +29,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.lang.reflect.Type
 import java.util.*
+import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
@@ -73,7 +74,7 @@ class MainActivity : AppCompatActivity() {
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
 //            moveToUnexploredAutomated(pauseInSeconds = 16)
-            moveToSpecificRoomAutomated(486, pauseInSeconds = 8)
+            moveToSpecificRoomAutomated(398, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
@@ -139,22 +140,26 @@ class MainActivity : AppCompatActivity() {
         button_wear.setOnClickListener {}
         button_undress.setOnClickListener {}
         button_examine.setOnClickListener {
-            //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
-            if (getCurrentRoomDetails().title == "Wishing Well") {
-                networkPostExamineShort(Treasure("Well"))
-            } else if (getCurrentRoomDetails().title == "Arron's Athenaeum") {
-                networkPostExamineShort(Treasure("Book"))
-            } else {
-                val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
-                val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
-                val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
-                val combined = roomItems + players + inventoryItems
-                if (combined.isNotEmpty()) {
-                    val treasure: Treasure = Treasure(combined.random())
-                    networkPostExamineTreasure(treasure)
+            if (currentRoomId > -1) {
+                if (getCurrentRoomDetails().title == "Wishing Well") {
+                    networkPostExamineShort(Treasure("Well"))
+                    currentRoomId
+                } else if (getCurrentRoomDetails().title == "Arron's Athenaeum") {
+                    networkPostExamineShort(Treasure("Book"))
                 } else {
-                    UserInteraction.inform(this, "Nothing to Examine!")
+                    val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
+                    val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
+                    val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
+                    val combined = roomItems + players + inventoryItems
+                    if (combined.isNotEmpty()) {
+                        val treasure: Treasure = Treasure(combined.random())
+                        networkPostExamineTreasure(treasure)
+                    } else {
+                        UserInteraction.inform(this, "Nothing to Examine!")
+                    }
                 }
+            } else {
+                UserInteraction.inform(this, "Please do a GET Init first...")
             }
         }
         button_change_name.setOnClickListener { networkPostChangeName(Treasure("Basil der Grosse", "aye")) }
@@ -1140,7 +1145,7 @@ class MainActivity : AppCompatActivity() {
         val retrofit: Retrofit = Retrofit.Builder()
             .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
             .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
+            .client(OkHttpClient.Builder().readTimeout(60, TimeUnit.SECONDS).addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .addHeader("Content-Type", "application/json")
                     .addHeader("Authorization", "Token $authorizationToken").build()

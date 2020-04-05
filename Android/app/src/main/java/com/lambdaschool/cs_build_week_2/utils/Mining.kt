@@ -4,13 +4,13 @@ import java.security.MessageDigest
 
 object Mining {
     fun proofOfWork(lastProof: Int, difficulty: Int): Int {
-        val lastProofHash: String = lastProof.toString().sha256()
-        val repeatedZeroes = "0".repeat(difficulty)
-        var proofCandidate: Int = 0
+        val repeatedZeroes: String = "0".repeat(difficulty)
+        var proofHash: String = ""
+        var proofCandidate: Int = -1
         do {
-            val proofHash: String = proofCandidate.toString().sha256()
             proofCandidate++
-        } while (!lastProofHash.startsWith(repeatedZeroes) && !proofHash.startsWith(repeatedZeroes))
+            proofHash = "$lastProof,$proofCandidate".sha256()
+        } while (!proofHash.startsWith(repeatedZeroes))
         return proofCandidate
     }
 
