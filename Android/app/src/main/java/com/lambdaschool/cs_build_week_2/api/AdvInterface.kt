@@ -92,18 +92,18 @@ interface TransmogrifyInterface {
 }
 
 interface CarryInterface {
-    @GET("adv/carry/")
-    fun getCarry(): Call<RoomDetails>
+    @POST("adv/carry/")
+    fun postCarry(@Body treasure: Treasure): Call<RoomDetails>
 }
 
 interface ReceiveInterface {
-    @GET("adv/receive/")
-    fun getReceive(): Call<RoomDetails>
+    @POST("adv/receive/")
+    fun postReceive(): Call<RoomDetails>
 }
 
 interface WarpInterface {
-    @GET("adv/warp/")
-    fun getWarp(): Call<RoomDetails>
+    @POST("adv/warp/")
+    fun postWarp(): Call<RoomDetails>
 }
 
 interface RecallInterface {

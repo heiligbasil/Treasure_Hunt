@@ -384,21 +384,6 @@
                         android:textSize="11sp" />
 
                     <Button
-                        android:id="@+id/button_player_state"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="1dp"
-                        android:height="16dp"
-                        android:background="@color/colorForestFade"
-                        android:fontFamily="cursive"
-                        android:minHeight="0dp"
-                        android:text="Player state"
-                        android:textAllCaps="false"
-                        android:textColor="@color/colorRuby"
-                        android:textFontWeight="900"
-                        android:textSize="11sp" />
-
-                    <Button
                         android:id="@+id/button_transmogrify"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -483,21 +468,6 @@
                         android:fontFamily="cursive"
                         android:minHeight="0dp"
                         android:text="Mine"
-                        android:textAllCaps="false"
-                        android:textColor="@color/colorRuby"
-                        android:textFontWeight="900"
-                        android:textSize="11sp" />
-
-                    <Button
-                        android:id="@+id/button_totals"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="1dp"
-                        android:height="16dp"
-                        android:background="@color/colorCupidFade"
-                        android:fontFamily="cursive"
-                        android:minHeight="0dp"
-                        android:text="Totals"
                         android:textAllCaps="false"
                         android:textColor="@color/colorRuby"
                         android:textFontWeight="900"
