@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
+import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.synthetic.main.activity_initial.*
 
 class InitialActivity : AppCompatActivity() {
@@ -22,9 +23,7 @@ class InitialActivity : AppCompatActivity() {
                 finish()
                 overridePendingTransition(0, android.R.anim.fade_out)
             } else {
-                val toast: Toast = Toast.makeText(this, "Invalid token. Try again...", Toast.LENGTH_LONG)
-                toast.setGravity(Gravity.CENTER, 0, 0)
-                toast.show()
+                UserInteraction.inform(this,"Invalid token. Try again...")
             }
         }
     }

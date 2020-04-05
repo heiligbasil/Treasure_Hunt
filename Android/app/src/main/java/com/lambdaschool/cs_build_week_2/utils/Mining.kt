@@ -3,13 +3,12 @@ package com.lambdaschool.cs_build_week_2.utils
 import java.security.MessageDigest
 
 object Mining {
-    fun proofOfWork(lastProof: Int, difficulty: Int): Int {
-        val repeatedZeroes: String = "0".repeat(difficulty)
-        var proofHash: String = ""
+    fun proofOfWork(lastProof: Int?, difficulty: Int?): Int {
+        val repeatedZeroes: String = "0".repeat(difficulty ?: 1)
         var proofCandidate: Int = -1
         do {
             proofCandidate++
-            proofHash = "$lastProof$proofCandidate".sha256()
+            val proofHash: String = "$lastProof$proofCandidate".sha256()
         } while (!proofHash.startsWith(repeatedZeroes))
         return proofCandidate
     }
