@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
         var responseMessage: String = ""
         var responseRoomInfo: String = ""
         var inventoryStatus: Status = Status()
+        var proof: Proof = Proof()
         val roomDetails = RoomDetails()
         val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
@@ -77,18 +78,19 @@ class MainActivity : AppCompatActivity() {
             moveToSpecificRoomAutomated(398, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
-            //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
-            val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
-            if (roomItems.isNotEmpty()) {
-                val treasure: Treasure = Treasure(roomItems.first())
-                roomItems.removeAt(0)
-                networkPostTakeTreasure(treasure)
-            } else {
-                UserInteraction.inform(this, "Nothing to take!")
+            if (isInitDataDownloaded()) {
+                val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
+                if (roomItems.isNotEmpty()) {
+                    val treasure: Treasure = Treasure(roomItems.first())
+                    roomItems.removeAt(0)
+                    networkPostTakeTreasure(treasure)
+                } else {
+                    UserInteraction.inform(this, "Nothing to take!")
+                }
             }
         }
         button_drop.setOnClickListener {
-            if (inventoryStatus.name != null) {
+            if (isStatusDataDownloaded()) {
                 val inventoryItems: MutableList<String> = inventoryStatus.inventory?.toMutableList() ?: arrayListOf()
                 if (inventoryItems.isNotEmpty()) {
                     val treasure: Treasure = Treasure(inventoryItems.first())
@@ -98,52 +100,46 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     UserInteraction.inform(this, "Nothing to drop!")
                 }
-            } else {
-                UserInteraction.inform(this, "Please do a GET Status first...")
             }
         }
         button_status.setOnClickListener { networkPostStatus() }
         button_buy.setOnClickListener {
-            //TODO: Initialize data properly before GET Init is run...and maybe disable all buttons until it is
-            var whatToBuy: String = ""
-            if (getCurrentRoomDetails().title == "Red Egg Pizza Parlor")
-                whatToBuy = "Pizza"
-            else if (getCurrentRoomDetails().title == "JKMT Donuts")
-                whatToBuy = "Donut"
-            networkPostBuyTreasure(Treasure(whatToBuy, "yes"))
+            if (isInitDataDownloaded()) {
+                var whatToBuy: String = ""
+                if (getCurrentRoomDetails().title == "Red Egg Pizza Parlor") {
+                    whatToBuy = "Pizza"
+                } else if (getCurrentRoomDetails().title == "JKMT Donuts") {
+                    whatToBuy = "Donut"
+                }
+                networkPostBuyTreasure(Treasure(whatToBuy, "yes"))
+            }
         }
         button_sell.setOnClickListener {
-            if (inventoryStatus.name != null) {
+            if (isStatusDataDownloaded()) {
                 val inventoryItems: MutableList<String> = inventoryStatus.inventory?.toMutableList() ?: arrayListOf()
                 if (inventoryItems.isNotEmpty()) {
                     val treasure: Treasure = Treasure(inventoryItems.first(), "yes")
                     inventoryItems.removeAt(0)
                     inventoryStatus.inventory = inventoryItems
                     networkPostSellTreasure(treasure)
-//                if( UserInteraction.askQuestion(
-//                    this,
-//                    "Mechanical Shopkeeper",
-//                    "Are you sure you want to sell '$randomItem'?",
-//                    "Confirm",
-//                    "Just browsing"
-//                )){
-//                    treasure = Treasure(randomItem, "yes")
-//                    networkPostSellTreasure(treasure)
-//                }
+                    /*UserInteraction.askQuestion(
+                        this,
+                        "Mechanical Shopkeeper",
+                        "Are you sure you want to sell '${treasure.name}'?",
+                        "Confirm",
+                        "Just browsing"
+                    )*/
                 } else {
                     UserInteraction.inform(this, "Nothing to sell!")
                 }
-            } else {
-                UserInteraction.inform(this, "Please do a GET Status first...")
             }
         }
         button_wear.setOnClickListener {}
         button_undress.setOnClickListener {}
         button_examine.setOnClickListener {
-            if (currentRoomId > -1) {
+            if (isInitDataDownloaded()) {
                 if (getCurrentRoomDetails().title == "Wishing Well") {
                     networkPostExamineShort(Treasure("Well"))
-                    currentRoomId
                 } else if (getCurrentRoomDetails().title == "Arron's Athenaeum") {
                     networkPostExamineShort(Treasure("Book"))
                 } else {
@@ -158,8 +154,6 @@ class MainActivity : AppCompatActivity() {
                         UserInteraction.inform(this, "Nothing to Examine!")
                     }
                 }
-            } else {
-                UserInteraction.inform(this, "Please do a GET Init first...")
             }
         }
         button_change_name.setOnClickListener { networkPostChangeName(Treasure("Basil der Grosse", "aye")) }
@@ -179,7 +173,7 @@ class MainActivity : AppCompatActivity() {
                 } while (roomId != null)
             }
             val dash: Dash = Dash("", "0", "")
-            val easierListToProcess: HashMap<String, String> = hashMapOf<String, String>()
+            val easierListToProcess: HashMap<String, String> = hashMapOf()
             directionAndPath.forEach {
                 easierListToProcess[it.key] = it.value.joinToString(separator = ",")
                 if (it.value.size > dash.num_rooms.toInt()) {
@@ -188,26 +182,21 @@ class MainActivity : AppCompatActivity() {
                     dash.next_room_ids = it.value.joinToString(separator = ",")
                 }
             }
-//            val longestPath: Map.Entry<String, String>? = easierListToProcess.maxBy { it.value.length }
-//            val pathLength: Int = directionAndPath.values.maxBy { it.size }?.size ?: 0
-//            val dash: Dash = Dash(longestPath?.key.toString(), maxPathLength.toString(), longestPath?.value.toString())
             networkPostDash(dash)
         }
-        button_player_state.setOnClickListener {}
         button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Tiny Treasure")) }
         button_carry.setOnClickListener { networkPostCarry(Treasure("Tiny Treasure")) }
         button_receive.setOnClickListener { networkPostReceive() }
         button_warp.setOnClickListener { networkPostWarp() }
         button_recall.setOnClickListener { networkPostRecall() }
         button_mine.setOnClickListener {
-            val proofOfWork = Mining.proofOfWork(59372620, 6)
-            networkPostMine(Mine(proofOfWork))
+            if (isProofDataDownloaded()) {
+                val proofOfWork: Int = Mining.proofOfWork(proof.proof, proof.difficulty)
+                networkPostMine(Mine(proofOfWork))
+            }
         }
-        button_totals.setOnClickListener {}
         button_last_proof.setOnClickListener { networkGetLastProof() }
         button_get_balance.setOnClickListener { networkGetBalance() }
-
-
     }
 
     private fun networkGetInit() {
@@ -239,88 +228,6 @@ class MainActivity : AppCompatActivity() {
                     text_log.append("Code ${response.code()}: Init success!\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, "${response.code()}: Init success!")
-                } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
-                }
-                showCooldownTimer()
-            }
-        })
-    }
-
-    private fun networkGetLastProof() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
-        val service: BcLastProofInterface = retrofit.create(BcLastProofInterface::class.java)
-        val call: Call<Proof> = service.getLastProof()
-        call.enqueue(object : Callback<Proof> {
-            override fun onFailure(call: Call<Proof>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
-            }
-
-            override fun onResponse(call: Call<Proof>, response: Response<Proof>) {
-                if (response.isSuccessful) {
-                    val responseBody: Proof = response.body() as Proof
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    text_log.append("Code ${response.code()}: Init success!\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, "${response.code()}: Get last proof success!")
-                } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
-                }
-                showCooldownTimer()
-            }
-        })
-    }
-
-    private fun networkGetBalance() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
-        val service: BcGetBalanceInterface = retrofit.create(BcGetBalanceInterface::class.java)
-        val call: Call<Balance> = service.getBalance()
-        call.enqueue(object : Callback<Balance> {
-            override fun onFailure(call: Call<Balance>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
-            }
-
-            override fun onResponse(call: Call<Balance>, response: Response<Balance>) {
-                if (response.isSuccessful) {
-                    val responseBody: Balance = response.body() as Balance
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    text_log.append("Code ${response.code()}: Init success!\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, "${response.code()}: Get balance success!")
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
                     val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
@@ -1189,8 +1096,91 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    private fun networkGetLastProof() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: BcLastProofInterface = retrofit.create(BcLastProofInterface::class.java)
+        val call: Call<Proof> = service.getLastProof()
+        call.enqueue(object : Callback<Proof> {
+            override fun onFailure(call: Call<Proof>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<Proof>, response: Response<Proof>) {
+                if (response.isSuccessful) {
+                    val responseBody: Proof = response.body() as Proof
+                    cooldownAmount = responseBody.cooldown
+                    proof = responseBody
+                    text_room_info.text = responseBody.toString()
+                    text_log.append("Code ${response.code()}: Last proof success!\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, "${response.code()}: Last proof success!")
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkGetBalance() {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: BcGetBalanceInterface = retrofit.create(BcGetBalanceInterface::class.java)
+        val call: Call<Balance> = service.getBalance()
+        call.enqueue(object : Callback<Balance> {
+            override fun onFailure(call: Call<Balance>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<Balance>, response: Response<Balance>) {
+                if (response.isSuccessful) {
+                    val responseBody: Balance = response.body() as Balance
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    text_log.append("Code ${response.code()}: Get balance success!\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, "${response.code()}: Get balance success!")
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
     private fun moveInDirection(direction: String) {
-        if (roomsGraph.isNotEmpty() && currentRoomId != -1) {
+        if (isInitDataDownloaded()) {
             val nextRoom: String? = anticipateNextRoom(direction)
             val moveWisely: MoveWisely = MoveWisely(direction, nextRoom)
             val networkRunnable: Runnable = Runnable {
@@ -1207,8 +1197,6 @@ class MainActivity : AppCompatActivity() {
             scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
             UserInteraction.inform(applicationContext, responseMessage)
             showCooldownTimer()
-        } else {
-            UserInteraction.inform(this, "Please do a GET Init first...")
         }
     }
 
@@ -1244,9 +1232,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getDirectionForRoom(roomId: Int?): String? {
         val roomDirections: HashMap<String, Int?> = getDirectionsFromRoom(currentRoomId)
-        val directions: Set<String> = roomDirections.filterValues {
-            it == roomId
-        }.keys
+        val directions: Set<String> = roomDirections.filterValues { it == roomId }.keys
         return if (directions.isNotEmpty())
             directions.first()
         else
@@ -1269,7 +1255,7 @@ class MainActivity : AppCompatActivity() {
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
         val cellColor: String = when (extractedRoomDetails.title) {
             "A misty room" -> "#${Color.LTGRAY.toHexString()}"
-            "Shop" -> "#${Color.GREEN.toHexString()}"
+            "Shop" -> "#4D6200EE"
             "JKMT Donuts" -> "#4DF18C8C"
             "A brightly lit room" -> "#FFAB00"
             "Arron's Athenaeum" -> "#4D0091EA"
@@ -1284,7 +1270,7 @@ class MainActivity : AppCompatActivity() {
             "Glasowyn's Grave" -> "#BF9C4607"
             "Linh's Shrine" -> "#7FFFD600"
             "Fully Shrine" -> "#7FB3FF00"
-            else -> "#${Color.RED.toHexString()}"
+            else -> "#FF6D00"
         }
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), cellColor)
     }
@@ -1370,10 +1356,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun moveToUnexploredAutomated(pauseInSeconds: Int = 16) {
-        if (currentRoomId == -1) {
-            UserInteraction.inform(this, "Please do a GET Init first...")
-            return
-        }
+        if (!isInitDataDownloaded()) return
         automatedPath = bfs(null)
         traversalTimer = Timer()
         traversalTimer.schedule(object : TimerTask() {
@@ -1383,9 +1366,32 @@ class MainActivity : AppCompatActivity() {
         }, pauseInSeconds * 1000L, pauseInSeconds * 1000L)
     }
 
+    private fun isInitDataDownloaded(): Boolean {
+        if (roomsGraph.isEmpty() || currentRoomId == -1) {
+            UserInteraction.inform(this, "Please do a GET 'Init' first...")
+            return false
+        }
+        return true
+    }
+
+    private fun isStatusDataDownloaded(): Boolean {
+        if (inventoryStatus.name == null) {
+            UserInteraction.inform(this, "Please do a POST 'Status' first...")
+            return false
+        }
+        return true
+    }
+
+    private fun isProofDataDownloaded(): Boolean {
+        if (proof.proof == null) {
+            UserInteraction.inform(this, "Please do a GET 'Last_proof' first...")
+            return false
+        }
+        return true
+    }
+
     private fun moveToSpecificRoomAutomated(roomId: Int?, pauseInSeconds: Int = 16) {
-        if (currentRoomId == -1) {
-            UserInteraction.inform(this, "Please do a GET Init first...")
+        if (!isInitDataDownloaded()) {
             return
         } else if (roomId == currentRoomId) {
             UserInteraction.askQuestion(this, "Room Is Here", "You are already at Room #${roomId}!", "Okay", null)
@@ -1398,26 +1404,6 @@ class MainActivity : AppCompatActivity() {
                 runNextAutomatedStep(false)
             }
         }, 0, pauseInSeconds * 1000L)
-
-        /*val pathToRoom: ArrayList<Int?> = bfs(roomId)
-        pathToRoom.forEach {
-            val direction: String? = getDirectionForRoom(it)
-            if (direction == null) {
-                UserInteraction.askQuestion(this, "Room Not Found", "Problem encountered traversing to room #$roomId!", "Okay", null)
-            } else {
-                when (direction) {
-                    "n" -> button_move_north.performClick()
-                    "s" -> button_move_south.performClick()
-                    "e" -> button_move_east.performClick()
-                    "w" -> button_move_west.performClick()
-                }
-                //moveInDirection(direction)
-                Thread.sleep(cooldownAmount?.times(1000)?.toLong() ?: 1000)
-            }
-        }
-        if (roomId == currentRoomId) {
-            UserInteraction.askQuestion(this, "Room Found", "Room #$roomId has been found!", "Okay", null)
-        }*/
     }
 
     private fun bfs(destinationRoom: Int?): ArrayList<Int?> {
