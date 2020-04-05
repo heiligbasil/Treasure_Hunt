@@ -1384,7 +1384,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun isProofDataDownloaded(): Boolean {
         if (proof.proof == null) {
-            UserInteraction.inform(this, "Please do a GET 'Last_proof' first...")
+            UserInteraction.inform(this, "Please do a GET 'Last proof' first...")
             return false
         }
         return true
