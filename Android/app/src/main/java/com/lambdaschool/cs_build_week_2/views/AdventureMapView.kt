@@ -41,7 +41,7 @@ class AdventureMapView @JvmOverloads constructor(
     }
     private val cellPaintText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.BLACK
+        color = Color.BLUE
         strokeWidth = 1.2F
         textSize = 16F
     }
@@ -50,9 +50,6 @@ class AdventureMapView @JvmOverloads constructor(
         color = Color.YELLOW
         strokeWidth = 5F
     }
-    public lateinit var cellChecked: Array<BooleanArray>
-    private lateinit var cellColors: Array<IntArray>
-
 
     /**
      * This is called during layout when the size of this view has changed. If
@@ -73,17 +70,13 @@ class AdventureMapView @JvmOverloads constructor(
         if (roomsGraph.isEmpty())
             return
         convertCoordinatesToGrid()
-
         cellHeight = height / max((cellsGrid.size - ((shiftXGridBy + shiftYGridBy) / 2)), 1) + 12
         cellWidth = cellHeight
-//        cellChecked = Array(numColumns) { BooleanArray(numRows) }
-//        cellColors = Array(numColumns) { IntArray(numRows) }
         calculated = true
         invalidate()
     }
 
-
-    fun convertCoordinatesToGrid() {
+    private fun convertCoordinatesToGrid() {
         val cellsList = hashMapOf<Int?, CellDetails>()
         val xs = arrayListOf<Int>()
         val ys = arrayListOf<Int>()
@@ -102,7 +95,6 @@ class AdventureMapView @JvmOverloads constructor(
         cellsGrid.reverse()
     }
 
-
     /**
      * Implement this to do your drawing.
      *
@@ -111,9 +103,6 @@ class AdventureMapView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         if (!calculated)
             return
-//        val width = width
-//        val height = height
-
         for (x in -shiftXGridBy until cellsGrid.size - shiftXGridBy) {
             for (y in shiftYGridBy until cellsGrid.size + shiftYGridBy) {
                 if (cellsGrid[y - shiftYGridBy][x + shiftXGridBy] > -1) {
@@ -124,15 +113,6 @@ class AdventureMapView @JvmOverloads constructor(
                     if (cellNumber == MainActivity.currentRoomId) {
                         cellPaint.color = Color.RED
                     }
-
-
-//        if (roomsGraph.isNotEmpty() && currentRoomId != -1) {
-                    /*roomsGraph.forEach {
-                        val roomId: Int? = it.key
-                        val cellDetails: CellDetails = roomsGraph[roomId]?.get(2) as CellDetails
-                        val x: Int = cellDetails.gridY
-                        val y: Int = cellDetails.gridX
-                        cellPaint.color = Color.parseColor(cellDetails.color)*/
                     // Filled color
                     canvas.drawRect(
                         x * cellWidth.toFloat(), y * cellHeight.toFloat(),
@@ -187,15 +167,12 @@ class AdventureMapView @JvmOverloads constructor(
                     }
                     // Cell number
                     canvas.drawText(
-                        cellNumber.toString(),
-                        (x + .05F) * cellWidth.toFloat(),
+                        cellNumber.toString().padStart(3,' '),
+                        (x + .07F) * cellWidth.toFloat(),
                         (y + .7F) * cellHeight.toFloat(),
                         cellPaintText
                     )
                 }
-//        }
-//        }
-//                }
             }
         }
     }
