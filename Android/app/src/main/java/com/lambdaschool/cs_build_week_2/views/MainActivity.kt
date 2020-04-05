@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         var responseRoomInfo: String = ""
         var inventoryStatus: Status = Status()
         var examineShort: ExamineShort = ExamineShort()
-        var traverseToRoom:Int=376
+        var traverseToRoom: Int = 309
         var mine: Mine = Mine(-1)
         var proof: Proof = Proof()
         val roomDetails: RoomDetails = RoomDetails()
@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity() {
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
 //            moveToUnexploredAutomated(pauseInSeconds = 16)
-            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 8)
+            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 5)
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
@@ -154,27 +154,27 @@ class MainActivity : AppCompatActivity() {
         }
         button_wear.setOnClickListener {
             if (isStatusDataDownloaded()) {
-                val footwear:String="nice boots"
-                val bodywear:String="nice jacket"
+                val footwear: String = "nice boots"
+                val bodywear: String = "nice jacket"
                 if (inventoryStatus.inventory?.contains(footwear) == true) {
                     networkPostWear(Treasure(footwear))
                 } else if (inventoryStatus.inventory?.contains(bodywear) == true) {
                     networkPostWear(Treasure(bodywear))
-                }else {
-                    UserInteraction.inform(this,"Nothing to wear!")
+                } else {
+                    UserInteraction.inform(this, "Nothing to wear!")
                 }
             }
         }
         button_undress.setOnClickListener {
             if (isStatusDataDownloaded()) {
-                val footwear:String="nice boots"
-                val bodywear:String="nice jacket"
+                val footwear: String = "nice boots"
+                val bodywear: String = "nice jacket"
                 if (inventoryStatus.footwear?.toLowerCase(Locale.getDefault())?.contains(footwear) == true) {
                     networkPostUndress(Treasure(footwear))
                 } else if (inventoryStatus.bodywear?.toLowerCase(Locale.getDefault())?.contains(bodywear) == true) {
                     networkPostUndress(Treasure(bodywear))
                 } else {
-                    UserInteraction.inform(this,"Nothing to undress!")
+                    UserInteraction.inform(this, "Nothing to undress!")
                 }
             }
         }
@@ -1394,19 +1394,19 @@ class MainActivity : AppCompatActivity() {
         val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
         val cellColor: String = when (extractedRoomDetails.title) {
-            "A misty room" -> "#${Color.LTGRAY.toHexString()}"
-            "Shop" -> "#4D6200EE"
+            "A misty room" -> "#4DB9DCB6"
+            "Shop" -> "#4D9FEE00"
             "JKMT Donuts" -> "#4DF18C8C"
-            "A brightly lit room" -> "#FFAB00"
+            "A brightly lit room" -> "#9AFFAB00"
             "Arron's Athenaeum" -> "#4D0091EA"
             "The Peak of Mt. Holloway" -> "#4D4B80A1"
-            "Mt. Holloway" -> "#${Color.DKGRAY.toHexString()}"
-            "Pirate Ry's" -> "#98000000"
+            "Mt. Holloway" -> "#B26B92CC"
+            "Pirate Ry's" -> "#80000000"
             "Wishing Well" -> "#65A67A06"
             "Red Egg Pizza Parlor" -> "#4DDD2C00"
-            "The Transmogriphier" -> "#${Color.MAGENTA.toHexString()}"
+            "The Transmogriphier" -> "#98C97ECC"
             "Sandofsky's Sanctum" -> "#BF0878BD"
-            "A Dark Cave" -> "#BE6200EA"
+            "A Dark Cave" -> "#7F6200EA"
             "Glasowyn's Grave" -> "#BF9C4607"
             "Linh's Shrine" -> "#7FFFD600"
             "Fully Shrine" -> "#7FB3FF00"
