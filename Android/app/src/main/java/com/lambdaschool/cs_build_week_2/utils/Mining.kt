@@ -9,7 +9,7 @@ object Mining {
         var proofCandidate: Int = -1
         do {
             proofCandidate++
-            proofHash = "$lastProof,$proofCandidate".sha256()
+            proofHash = "$lastProof$proofCandidate".sha256()
         } while (!proofHash.startsWith(repeatedZeroes))
         return proofCandidate
     }
