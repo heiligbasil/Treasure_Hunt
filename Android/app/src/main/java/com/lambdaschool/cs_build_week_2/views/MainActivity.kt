@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
         var responseRoomInfo: String = ""
         var inventoryStatus: Status = Status()
         var examineShort: ExamineShort = ExamineShort()
+        var traverseToRoom:Int=0
         var mine: Mine = Mine(-1)
         var proof: Proof = Proof()
         val roomDetails: RoomDetails = RoomDetails()
@@ -92,7 +93,7 @@ class MainActivity : AppCompatActivity() {
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
 //            moveToUnexploredAutomated(pauseInSeconds = 16)
-            moveToSpecificRoomAutomated(398, pauseInSeconds = 8)
+            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {

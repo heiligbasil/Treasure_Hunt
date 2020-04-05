@@ -51,6 +51,7 @@ class AdventureMapView @JvmOverloads constructor(
         strokeWidth = 5F
     }
 
+
     /**
      * This is called during layout when the size of this view has changed. If
      * you were just added to the view hierarchy, you're called with the old
@@ -167,15 +168,20 @@ class AdventureMapView @JvmOverloads constructor(
                     }
                     // Cell number
                     canvas.drawText(
-                        cellNumber.toString().padStart(3,' '),
+                        cellNumber.toString().padStart(3, ' '),
                         (x + .07F) * cellWidth.toFloat(),
                         (y + .7F) * cellHeight.toFloat(),
                         cellPaintText
                     )
+                    // Coordinates for debugging
+                    /*canvas.drawText(coords,height/2f-200,20f+15,cellPaintDebug)*/
                 }
             }
         }
     }
+
+    /*private var coords=""
+    private val cellPaintDebug = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth=2f;textSize=40f }*/
 
     /**
      * Implement this method to handle touch screen motion events.
@@ -197,16 +203,21 @@ class AdventureMapView @JvmOverloads constructor(
      */
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            val column = max((event.x / cellWidth).toInt() - 10, 0)
-            val row = min((event.y / cellHeight).toInt() + 30, cellsGrid.size)
+            val reversed: List<Array<Int>> = cellsGrid.reversed()
+            val column = (event.y / cellWidth).toInt() - 3
+            val row = (event.x / cellHeight).toInt() + 47
             val selectedCell: Int = cellsGrid[column][row]
+            /*coords="($row,$column) $selectedCell"*/
             if (selectedCell > -1) {
                 val roomDetails: RoomDetails = (roomsGraph[selectedCell]?.get(0) as RoomDetails)
-                UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Okay", null)
+                UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Confirm", null)
+                MainActivity.traverseToRoom = selectedCell
             }
             performClick()
+            invalidate()
+            return true
         }
-        return true
+        return false
     }
 
     /**
