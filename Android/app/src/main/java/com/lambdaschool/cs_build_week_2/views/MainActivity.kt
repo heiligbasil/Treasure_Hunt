@@ -93,7 +93,7 @@ class MainActivity : AppCompatActivity() {
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
 //            moveToUnexploredAutomated(pauseInSeconds = 16)
-            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 5)
+            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
@@ -1393,25 +1393,7 @@ class MainActivity : AppCompatActivity() {
         val extractedRoomDetails: RoomDetails = roomsGraph[roomId]?.get(0) as RoomDetails
         val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
-        val cellColor: String = when (extractedRoomDetails.title) {
-            "A misty room" -> "#4DB9DCB6"
-            "Shop" -> "#4D9FEE00"
-            "JKMT Donuts" -> "#4DF18C8C"
-            "A brightly lit room" -> "#9AFFAB00"
-            "Arron's Athenaeum" -> "#4D0091EA"
-            "The Peak of Mt. Holloway" -> "#4D4B80A1"
-            "Mt. Holloway" -> "#B26B92CC"
-            "Pirate Ry's" -> "#80000000"
-            "Wishing Well" -> "#65A67A06"
-            "Red Egg Pizza Parlor" -> "#4DDD2C00"
-            "The Transmogriphier" -> "#98C97ECC"
-            "Sandofsky's Sanctum" -> "#BF0878BD"
-            "A Dark Cave" -> "#7F6200EA"
-            "Glasowyn's Grave" -> "#BF9C4607"
-            "Linh's Shrine" -> "#7FFFD600"
-            "Fully Shrine" -> "#7FB3FF00"
-            else -> "#FF6D00"
-        }
+        val cellColor: String = Color.TRANSPARENT.toHexString()
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), cellColor)
     }
 

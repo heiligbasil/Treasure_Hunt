@@ -41,7 +41,7 @@ class AdventureMapView @JvmOverloads constructor(
     }
     private val cellPaintText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.BLUE
+        color = Color.parseColor("#CC0B215A")
         strokeWidth = 1.2F
         textSize = 16F
     }
@@ -109,10 +109,30 @@ class AdventureMapView @JvmOverloads constructor(
                 if (cellsGrid[y - shiftYGridBy][x + shiftXGridBy] > -1) {
                     val cellNumber = cellsGrid[y - shiftYGridBy][x + shiftXGridBy]
                     val exitDirections = roomsGraph[cellNumber]?.get(1) as HashMap<*, *>
-                    val hexColor = (roomsGraph[cellNumber]?.get(2) as CellDetails).color
-                    cellPaint.color = Color.parseColor(hexColor)
+                    val cellTitle = (roomsGraph[cellNumber]?.get(0) as RoomDetails).title
+                    cellPaint.color = Color.parseColor(
+                        when (cellTitle) {
+                            "A brightly lit room" -> "#9AFFD600"
+                            "A misty room" -> "#65B8D5B6"
+                            "A Dark Cave" -> "#7FA10A0A"
+                            "Mt. Holloway" -> "#B2276BCF"
+                            "Shop" -> "#CC42A304"
+                            "Wishing Well" -> "#CC42A304"
+                            "JKMT Donuts" -> "#CC42A304"
+                            "Red Egg Pizza Parlor" -> "#CC42A304"
+                            "The Transmogriphier" -> "#CC42A304"
+                            "The Peak of Mt. Holloway" -> "#4D6200EA"
+                            "Pirate Ry's" -> "#4D6200EA"
+                            "Arron's Athenaeum" -> "#4D6200EA"
+                            "Sandofsky's Sanctum" -> "#4D6200EA"
+                            "Glasowyn's Grave" -> "#4D6200EA"
+                            "Linh's Shrine" -> "#4D6200EA"
+                            "Fully Shrine" -> "#4D6200EA"
+                            else -> "#CDFF6D00"
+                        }
+                    )
                     if (cellNumber == MainActivity.currentRoomId) {
-                        cellPaint.color = Color.RED
+                        cellPaint.color = Color.parseColor("#CCD50000")
                     }
                     // Filled color
                     canvas.drawRect(
