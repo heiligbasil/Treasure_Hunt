@@ -1,8 +1,6 @@
 package com.lambdaschool.cs_build_week_2.views
 
-import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
+import android.content.*
 import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -47,8 +45,10 @@ class MainActivity : AppCompatActivity() {
         var responseMessage: String = ""
         var responseRoomInfo: String = ""
         var inventoryStatus: Status = Status()
+        var examineShort: ExamineShort = ExamineShort()
+        var mine: Mine = Mine(-1)
         var proof: Proof = Proof()
-        val roomDetails = RoomDetails()
+        val roomDetails: RoomDetails = RoomDetails()
         val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
         val cellDetails = CellDetails()
@@ -68,6 +68,23 @@ class MainActivity : AppCompatActivity() {
         title = "Lambda Treasure Hunt"
         initializeCompanion(this)
         startActivity(Intent(this, InitialActivity::class.java))
+        text_room_info.setOnLongClickListener {
+            if (isInitDataDownloaded()) {
+                var descriptionToCopy: String = ""
+                if (getCurrentRoomDetails().title == "Wishing Well") {
+                    descriptionToCopy = examineShort.description ?: "Nothing copied!"
+                } else if (mine.proof != -1) {
+                    descriptionToCopy = mine.proof.toString()
+                } else {
+                    return@setOnLongClickListener false
+                }
+                val clipboard: ClipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip: ClipData = ClipData.newPlainText("LTH Description", descriptionToCopy)
+                clipboard.setPrimaryClip(clip)
+                UserInteraction.inform(this, "Copied the description to the clipboard.")
+            }
+            return@setOnLongClickListener true
+        }
         button_move_north.setOnClickListener { moveInDirection("n") }
         button_move_south.setOnClickListener { moveInDirection("s") }
         button_move_east.setOnClickListener { moveInDirection("e") }
@@ -191,8 +208,8 @@ class MainActivity : AppCompatActivity() {
         button_recall.setOnClickListener { networkPostRecall() }
         button_mine.setOnClickListener {
             if (isProofDataDownloaded()) {
-                val proofOfWork: Int = Mining.proofOfWork(proof.proof, proof.difficulty)
-                networkPostMine(Mine(proofOfWork))
+                val mine: Mine = Mine(Mining.proofOfWork(proof.proof, proof.difficulty))
+                networkPostMine(mine)
             }
         }
         button_last_proof.setOnClickListener { networkGetLastProof() }
@@ -782,6 +799,7 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call<ExamineShort>, response: Response<ExamineShort>) {
                 if (response.isSuccessful) {
                     val responseBody: ExamineShort = response.body() as ExamineShort
+                    examineShort = responseBody
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     var message: String = "Code ${response.code()}: "
@@ -806,7 +824,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
-
 
     private fun networkPostDrop(treasure: Treasure) {
         val retrofit: Retrofit = Retrofit.Builder()
