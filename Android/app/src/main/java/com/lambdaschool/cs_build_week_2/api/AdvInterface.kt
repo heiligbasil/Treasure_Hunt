@@ -42,13 +42,13 @@ interface SellInterface {
 }
 
 interface WearInterface {
-    @GET("adv/wear/")
-    fun getWear(): Call<RoomDetails>
+    @POST("adv/wear/")
+    fun postWear(@Body treasure: Treasure): Call<Status>
 }
 
 interface UndressInterface {
-    @GET("adv/undress/")
-    fun getUndress(): Call<RoomDetails>
+    @POST("adv/undress/")
+    fun postUndress(@Body treasure: Treasure): Call<Status>
 }
 
 interface ExamineInterface {

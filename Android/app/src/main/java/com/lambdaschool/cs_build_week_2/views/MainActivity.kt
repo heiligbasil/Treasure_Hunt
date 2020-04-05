@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
         var responseRoomInfo: String = ""
         var inventoryStatus: Status = Status()
         var examineShort: ExamineShort = ExamineShort()
-        var traverseToRoom:Int=0
+        var traverseToRoom:Int=376
         var mine: Mine = Mine(-1)
         var proof: Proof = Proof()
         val roomDetails: RoomDetails = RoomDetails()
@@ -152,8 +152,32 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        button_wear.setOnClickListener {}
-        button_undress.setOnClickListener {}
+        button_wear.setOnClickListener {
+            if (isStatusDataDownloaded()) {
+                val footwear:String="nice boots"
+                val bodywear:String="nice jacket"
+                if (inventoryStatus.inventory?.contains(footwear) == true) {
+                    networkPostWear(Treasure(footwear))
+                } else if (inventoryStatus.inventory?.contains(bodywear) == true) {
+                    networkPostWear(Treasure(bodywear))
+                }else {
+                    UserInteraction.inform(this,"Nothing to wear!")
+                }
+            }
+        }
+        button_undress.setOnClickListener {
+            if (isStatusDataDownloaded()) {
+                val footwear:String="nice boots"
+                val bodywear:String="nice jacket"
+                if (inventoryStatus.footwear?.toLowerCase(Locale.getDefault())?.contains(footwear) == true) {
+                    networkPostUndress(Treasure(footwear))
+                } else if (inventoryStatus.bodywear?.toLowerCase(Locale.getDefault())?.contains(bodywear) == true) {
+                    networkPostUndress(Treasure(bodywear))
+                } else {
+                    UserInteraction.inform(this,"Nothing to undress!")
+                }
+            }
+        }
         button_examine.setOnClickListener {
             if (isInitDataDownloaded()) {
                 if (getCurrentRoomDetails().title == "Wishing Well") {
@@ -202,7 +226,7 @@ class MainActivity : AppCompatActivity() {
             }
             networkPostDash(dash)
         }
-        button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Tiny Treasure")) }
+        button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Small Treasure")) }
         button_carry.setOnClickListener { networkPostCarry(Treasure("Tiny Treasure")) }
         button_receive.setOnClickListener { networkPostReceive() }
         button_warp.setOnClickListener { networkPostWarp() }
@@ -373,7 +397,7 @@ class MainActivity : AppCompatActivity() {
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     val message: String =
-                        "Code ${response.code()}: Inventory status success!\n${responseBody.messages?.joinToString("\n")}"
+                        "Code ${response.code()}: Inventory status success! ${responseBody.messages?.joinToString("\n")}"
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
@@ -518,6 +542,104 @@ class MainActivity : AppCompatActivity() {
                         "Buy failure!\n${responseBody.errors?.joinToString("\n")}"
                     } else {
                         "Buy success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostWear(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: WearInterface = retrofit.create(WearInterface::class.java)
+        val call: Call<Status> = service.postWear(treasure)
+        call.enqueue(object : Callback<Status> {
+            override fun onFailure(call: Call<Status>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<Status>, response: Response<Status>) {
+                if (response.isSuccessful) {
+                    val responseBody: Status = response.body() as Status
+                    inventoryStatus = responseBody
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Wear failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Wear success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostUndress(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: UndressInterface = retrofit.create(UndressInterface::class.java)
+        val call: Call<Status> = service.postUndress(treasure)
+        call.enqueue(object : Callback<Status> {
+            override fun onFailure(call: Call<Status>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<Status>, response: Response<Status>) {
+                if (response.isSuccessful) {
+                    val responseBody: Status = response.body() as Status
+                    inventoryStatus = responseBody
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Undress failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Undress success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
