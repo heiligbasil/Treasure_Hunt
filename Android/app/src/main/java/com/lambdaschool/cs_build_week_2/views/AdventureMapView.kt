@@ -10,9 +10,11 @@ import android.view.View
 import com.lambdaschool.cs_build_week_2.models.CellDetails
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
+import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.darkGraph
+import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.inDarkWorld
 import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.roomsGraph
+import java.util.*
 import kotlin.math.max
-import kotlin.math.min
 
 class AdventureMapView @JvmOverloads constructor(
     context: Context,
@@ -41,7 +43,7 @@ class AdventureMapView @JvmOverloads constructor(
     }
     private val cellPaintText = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        color = Color.BLUE
+        color = Color.parseColor("#CC0B215A")
         strokeWidth = 1.2F
         textSize = 16F
     }
@@ -50,6 +52,7 @@ class AdventureMapView @JvmOverloads constructor(
         color = Color.YELLOW
         strokeWidth = 5F
     }
+
 
     /**
      * This is called during layout when the size of this view has changed. If
@@ -67,8 +70,9 @@ class AdventureMapView @JvmOverloads constructor(
     }
 
     fun calculateSize() {
-        if (roomsGraph.isEmpty())
+        if ((inDarkWorld && darkGraph.isEmpty()) || (!inDarkWorld && roomsGraph.isEmpty())) {
             return
+        }
         convertCoordinatesToGrid()
         cellHeight = height / max((cellsGrid.size - ((shiftXGridBy + shiftYGridBy) / 2)), 1) + 12
         cellWidth = cellHeight
@@ -77,17 +81,25 @@ class AdventureMapView @JvmOverloads constructor(
     }
 
     private fun convertCoordinatesToGrid() {
-        val cellsList = hashMapOf<Int?, CellDetails>()
-        val xs = arrayListOf<Int>()
-        val ys = arrayListOf<Int>()
-        roomsGraph.forEach {
-            cellsList[it.key] = it.value[2] as CellDetails
-            xs.add((it.value[2] as CellDetails).gridX)
-            ys.add((it.value[2] as CellDetails).gridY)
+        val cellsList: HashMap<Int?, CellDetails> = hashMapOf<Int?, CellDetails>()
+        val xs: ArrayList<Int> = arrayListOf<Int>()
+        val ys: ArrayList<Int> = arrayListOf<Int>()
+        if (inDarkWorld) {
+            darkGraph.forEach {
+                cellsList[it.key] = it.value[2] as CellDetails
+                xs.add((it.value[2] as CellDetails).gridX)
+                ys.add((it.value[2] as CellDetails).gridY)
+            }
+        } else {
+            roomsGraph.forEach {
+                cellsList[it.key] = it.value[2] as CellDetails
+                xs.add((it.value[2] as CellDetails).gridX)
+                ys.add((it.value[2] as CellDetails).gridY)
+            }
         }
-        val largestXcoord = xs.max() ?: 0
-        val largestYcoord = ys.max() ?: 0
-        val size = max(largestXcoord, largestYcoord) + 1
+        val largestXcoord: Int = xs.max() ?: 0
+        val largestYcoord: Int = ys.max() ?: 0
+        val size: Int = max(largestXcoord, largestYcoord) + 1
         cellsGrid = Array(size) { Array(size) { -1 } }
         cellsList.forEach {
             cellsGrid[it.value.gridY][it.value.gridX] = it.key ?: -1
@@ -103,15 +115,49 @@ class AdventureMapView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         if (!calculated)
             return
+        if (inDarkWorld) {
+            cellPaintText.color = Color.parseColor("#B9C5CC")
+        } else {
+            cellPaintText.color = Color.parseColor("#0B215A")
+        }
         for (x in -shiftXGridBy until cellsGrid.size - shiftXGridBy) {
             for (y in shiftYGridBy until cellsGrid.size + shiftYGridBy) {
                 if (cellsGrid[y - shiftYGridBy][x + shiftXGridBy] > -1) {
-                    val cellNumber = cellsGrid[y - shiftYGridBy][x + shiftXGridBy]
-                    val exitDirections = roomsGraph[cellNumber]?.get(1) as HashMap<*, *>
-                    val hexColor = (roomsGraph[cellNumber]?.get(2) as CellDetails).color
-                    cellPaint.color = Color.parseColor(hexColor)
+                    val cellNumber: Int = cellsGrid[y - shiftYGridBy][x + shiftXGridBy]
+                    val exitDirections: HashMap<*, *> = if (inDarkWorld) {
+                        darkGraph[cellNumber]?.get(1) as HashMap<*, *>
+                    } else {
+                        roomsGraph[cellNumber]?.get(1) as HashMap<*, *>
+                    }
+                    val cellTitle: String? = if (inDarkWorld) {
+                        (darkGraph[cellNumber]?.get(0) as RoomDetails).title
+                    } else {
+                        (roomsGraph[cellNumber]?.get(0) as RoomDetails).title
+                    }
+                    cellPaint.color = Color.parseColor(
+                        when (cellTitle) {
+                            "A brightly lit room" -> "#9AFFD600"
+                            "A misty room" -> "#65B8D5B6"
+                            "A Dark Cave" -> "#7FA10A0A"
+                            "Mt. Holloway" -> "#B2276BCF"
+                            "Darkness" -> "#80333B47"
+                            "Shop" -> "#CC42A304"
+                            "Wishing Well" -> "#CC42A304"
+                            "JKMT Donuts" -> "#CC42A304"
+                            "Red Egg Pizza Parlor" -> "#CC42A304"
+                            "The Transmogriphier" -> "#CC42A304"
+                            "The Peak of Mt. Holloway" -> "#4D6200EA"
+                            "Pirate Ry's" -> "#4D6200EA"
+                            "Arron's Athenaeum" -> "#4D6200EA"
+                            "Sandofsky's Sanctum" -> "#4D6200EA"
+                            "Glasowyn's Grave" -> "#4D6200EA"
+                            "Linh's Shrine" -> "#4D6200EA"
+                            "Fully Shrine" -> "#4D6200EA"
+                            else -> "#CDFF6D00"
+                        }
+                    )
                     if (cellNumber == MainActivity.currentRoomId) {
-                        cellPaint.color = Color.RED
+                        cellPaint.color = Color.parseColor("#CCD50000")
                     }
                     // Filled color
                     canvas.drawRect(
@@ -167,15 +213,20 @@ class AdventureMapView @JvmOverloads constructor(
                     }
                     // Cell number
                     canvas.drawText(
-                        cellNumber.toString().padStart(3,' '),
+                        cellNumber.toString().padStart(3, ' '),
                         (x + .07F) * cellWidth.toFloat(),
                         (y + .7F) * cellHeight.toFloat(),
                         cellPaintText
                     )
+                    // Coordinates for debugging
+                    /*canvas.drawText(coords,height/2f-200,20f+15,cellPaintDebug)*/
                 }
             }
         }
     }
+
+    /*private var coords=""
+    private val cellPaintDebug = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeWidth=2f;textSize=40f }*/
 
     /**
      * Implement this method to handle touch screen motion events.
@@ -197,16 +248,24 @@ class AdventureMapView @JvmOverloads constructor(
      */
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            val column = max((event.x / cellWidth).toInt() - 10, 0)
-            val row = min((event.y / cellHeight).toInt() + 30, cellsGrid.size)
+            val column = (event.y / cellWidth).toInt() - 3
+            val row = (event.x / cellHeight).toInt() + 47
             val selectedCell: Int = cellsGrid[column][row]
+            /*coords="($row,$column) $selectedCell"*/
             if (selectedCell > -1) {
-                val roomDetails: RoomDetails = (roomsGraph[selectedCell]?.get(0) as RoomDetails)
-                UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Okay", null)
+                val roomDetails: RoomDetails = if (inDarkWorld) {
+                    (darkGraph[selectedCell]?.get(0) as RoomDetails)
+                } else {
+                    (roomsGraph[selectedCell]?.get(0) as RoomDetails)
+                }
+                UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Confirm", null)
+                MainActivity.traverseToRoom = selectedCell
             }
             performClick()
+            invalidate()
+            return true
         }
-        return true
+        return false
     }
 
     /**

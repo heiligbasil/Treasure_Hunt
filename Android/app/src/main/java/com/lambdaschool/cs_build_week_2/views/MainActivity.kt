@@ -1,8 +1,6 @@
 package com.lambdaschool.cs_build_week_2.views
 
-import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
+import android.content.*
 import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
@@ -47,17 +45,26 @@ class MainActivity : AppCompatActivity() {
         var responseMessage: String = ""
         var responseRoomInfo: String = ""
         var inventoryStatus: Status = Status()
+        var examineShort: ExamineShort = ExamineShort()
+        var traverseToRoom: Int = 309
+        var mine: Mine = Mine(-1)
         var proof: Proof = Proof()
-        val roomDetails = RoomDetails()
+        val roomDetails: RoomDetails = RoomDetails()
         val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
         val cellDetails = CellDetails()
         val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
+        val darkGraph = HashMap<Int?, ArrayList<Any?>>()
+        var inDarkWorld = false
         var authorizationToken: String? = null
         lateinit var preferences: SharedPreferences
+        lateinit var preferencesDark: SharedPreferences
         fun initializeCompanion(context: Context) {
             if (!Companion::preferences.isInitialized) {
                 preferences = context.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
+            }
+            if (!Companion::preferencesDark.isInitialized) {
+                preferencesDark = context.getSharedPreferences("DarkData", Context.MODE_PRIVATE)
             }
         }
     }
@@ -68,18 +75,34 @@ class MainActivity : AppCompatActivity() {
         title = "Lambda Treasure Hunt"
         initializeCompanion(this)
         startActivity(Intent(this, InitialActivity::class.java))
+        text_room_info.setOnLongClickListener {
+            if (isInitDataDownloaded()) {
+                val descriptionToCopy: String = if (getCurrentRoomDetails().title == "Wishing Well") {
+                    examineShort.description ?: "Nothing copied!"
+                } else if (mine.proof != -1) {
+                    mine.proof.toString()
+                } else {
+                    return@setOnLongClickListener false
+                }
+                val clipboard: ClipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip: ClipData = ClipData.newPlainText("LTH Description", descriptionToCopy)
+                clipboard.setPrimaryClip(clip)
+                UserInteraction.inform(this, "Copied the description to the clipboard.")
+            }
+            return@setOnLongClickListener true
+        }
         button_move_north.setOnClickListener { moveInDirection("n") }
         button_move_south.setOnClickListener { moveInDirection("s") }
         button_move_east.setOnClickListener { moveInDirection("e") }
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-//            moveToUnexploredAutomated(pauseInSeconds = 16)
-            moveToSpecificRoomAutomated(398, pauseInSeconds = 8)
+            moveToUnexploredAutomated(pauseInSeconds = 10)
+//            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
-                val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
+                val roomItems = (getCurrentRoomDetails()).items as ArrayList<String>
                 if (roomItems.isNotEmpty()) {
                     val treasure: Treasure = Treasure(roomItems.first())
                     roomItems.removeAt(0)
@@ -134,19 +157,44 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        button_wear.setOnClickListener {}
-        button_undress.setOnClickListener {}
+        button_wear.setOnClickListener {
+            if (isStatusDataDownloaded()) {
+                val footwear: String = "nice boots"
+                val bodywear: String = "nice jacket"
+                if (inventoryStatus.inventory?.contains(footwear) == true) {
+                    networkPostWear(Treasure(footwear))
+                } else if (inventoryStatus.inventory?.contains(bodywear) == true) {
+                    networkPostWear(Treasure(bodywear))
+                } else {
+                    UserInteraction.inform(this, "Nothing to wear!")
+                }
+            }
+        }
+        button_undress.setOnClickListener {
+            if (isStatusDataDownloaded()) {
+                val footwear: String = "nice boots"
+                val bodywear: String = "nice jacket"
+                if (inventoryStatus.footwear?.toLowerCase(Locale.getDefault())?.contains(footwear) == true) {
+                    networkPostUndress(Treasure(footwear))
+                } else if (inventoryStatus.bodywear?.toLowerCase(Locale.getDefault())?.contains(bodywear) == true) {
+                    networkPostUndress(Treasure(bodywear))
+                } else {
+                    UserInteraction.inform(this, "Nothing to undress!")
+                }
+            }
+        }
         button_examine.setOnClickListener {
             if (isInitDataDownloaded()) {
-                if (getCurrentRoomDetails().title == "Wishing Well") {
+                val currentRoomDetails: RoomDetails = getCurrentRoomDetails()
+                if (currentRoomDetails.title == "Wishing Well") {
                     networkPostExamineShort(Treasure("Well"))
-                } else if (getCurrentRoomDetails().title == "Arron's Athenaeum") {
+                } else if (currentRoomDetails.title == "Arron's Athenaeum") {
                     networkPostExamineShort(Treasure("Book"))
                 } else {
-                    val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
-                    val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
-                    val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
-                    val combined = roomItems + players + inventoryItems
+                    val roomItems: java.util.ArrayList<String> = (currentRoomDetails).items as ArrayList<String>
+                    val players: java.util.ArrayList<String> = (currentRoomDetails).players as ArrayList<String>
+                    val inventoryItems: List<String> = inventoryStatus.inventory ?: arrayListOf()
+                    val combined: List<String> = roomItems + players + inventoryItems
                     if (combined.isNotEmpty()) {
                         val treasure: Treasure = Treasure(combined.random())
                         networkPostExamineTreasure(treasure)
@@ -184,15 +232,15 @@ class MainActivity : AppCompatActivity() {
             }
             networkPostDash(dash)
         }
-        button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Tiny Treasure")) }
+        button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Small Treasure")) }
         button_carry.setOnClickListener { networkPostCarry(Treasure("Tiny Treasure")) }
         button_receive.setOnClickListener { networkPostReceive() }
         button_warp.setOnClickListener { networkPostWarp() }
         button_recall.setOnClickListener { networkPostRecall() }
         button_mine.setOnClickListener {
             if (isProofDataDownloaded()) {
-                val proofOfWork: Int = Mining.proofOfWork(proof.proof, proof.difficulty)
-                networkPostMine(Mine(proofOfWork))
+                val mine: Mine = Mine(Mining.proofOfWork(proof.proof, proof.difficulty))
+                networkPostMine(mine)
             }
         }
         button_last_proof.setOnClickListener { networkGetLastProof() }
@@ -355,7 +403,7 @@ class MainActivity : AppCompatActivity() {
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     val message: String =
-                        "Code ${response.code()}: Inventory status success!\n${responseBody.messages?.joinToString("\n")}"
+                        "Code ${response.code()}: Inventory status success! ${responseBody.messages?.joinToString("\n")}"
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
@@ -456,6 +504,7 @@ class MainActivity : AppCompatActivity() {
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
+                    SharedPrefs.saveState()
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
                     val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
@@ -500,6 +549,104 @@ class MainActivity : AppCompatActivity() {
                         "Buy failure!\n${responseBody.errors?.joinToString("\n")}"
                     } else {
                         "Buy success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostWear(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: WearInterface = retrofit.create(WearInterface::class.java)
+        val call: Call<Status> = service.postWear(treasure)
+        call.enqueue(object : Callback<Status> {
+            override fun onFailure(call: Call<Status>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<Status>, response: Response<Status>) {
+                if (response.isSuccessful) {
+                    val responseBody: Status = response.body() as Status
+                    inventoryStatus = responseBody
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Wear failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Wear success!\n${responseBody.messages?.joinToString("\n")}"
+                    }
+                    text_log.append(message + "\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, message)
+                } else {
+                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
+                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
+                    cooldownAmount = errorBody.cooldown
+                    text_log.append("$errorText\n")
+                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                    UserInteraction.inform(applicationContext, errorText)
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkPostUndress(treasure: Treasure) {
+        val retrofit: Retrofit = Retrofit.Builder()
+            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
+        val service: UndressInterface = retrofit.create(UndressInterface::class.java)
+        val call: Call<Status> = service.postUndress(treasure)
+        call.enqueue(object : Callback<Status> {
+            override fun onFailure(call: Call<Status>, t: Throwable) {
+                text_log.append("${t.message}\n")
+                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+            }
+
+            override fun onResponse(call: Call<Status>, response: Response<Status>) {
+                if (response.isSuccessful) {
+                    val responseBody: Status = response.body() as Status
+                    inventoryStatus = responseBody
+                    cooldownAmount = responseBody.cooldown
+                    text_room_info.text = responseBody.toString()
+                    var message: String = "Code ${response.code()}: "
+                    message += if (responseBody.errors?.isNotEmpty() == true) {
+                        "Undress failure!\n${responseBody.errors?.joinToString("\n")}"
+                    } else {
+                        "Undress success!\n${responseBody.messages?.joinToString("\n")}"
                     }
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
@@ -697,6 +844,7 @@ class MainActivity : AppCompatActivity() {
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
+                    SharedPrefs.saveState()
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
                     val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
@@ -782,6 +930,7 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call<ExamineShort>, response: Response<ExamineShort>) {
                 if (response.isSuccessful) {
                     val responseBody: ExamineShort = response.body() as ExamineShort
+                    examineShort = responseBody
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     var message: String = "Code ${response.code()}: "
@@ -806,7 +955,6 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
-
 
     private fun networkPostDrop(treasure: Treasure) {
         val retrofit: Retrofit = Retrofit.Builder()
@@ -1031,6 +1179,8 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         "Warp success!\n${responseBody.messages?.joinToString("\n")}"
                     }
+                    updateGraphDetails(responseBody)
+                    SharedPrefs.saveState()
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
@@ -1060,17 +1210,17 @@ class MainActivity : AppCompatActivity() {
             }.build())
             .build()
         val service: BcMineInterface = retrofit.create(BcMineInterface::class.java)
-        val call: Call<ExamineShort> = service.postMove(mine)
-        call.enqueue(object : Callback<ExamineShort> {
-            override fun onFailure(call: Call<ExamineShort>, t: Throwable) {
+        val call: Call<Transaction> = service.postMine(mine)
+        call.enqueue(object : Callback<Transaction> {
+            override fun onFailure(call: Call<Transaction>, t: Throwable) {
                 text_log.append("${t.message}\n")
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
-            override fun onResponse(call: Call<ExamineShort>, response: Response<ExamineShort>) {
+            override fun onResponse(call: Call<Transaction>, response: Response<Transaction>) {
                 if (response.isSuccessful) {
-                    val responseBody: ExamineShort = response.body() as ExamineShort
+                    val responseBody: Transaction = response.body() as Transaction
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     var message: String = "Code ${response.code()}: "
@@ -1202,30 +1352,65 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateGraphDetails(responseBody: RoomDetails?) {
         currentRoomId = responseBody?.roomId ?: 0
-        if (roomsGraph[currentRoomId].isNullOrEmpty())
-            roomsGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
-        roomsGraph[currentRoomId]?.set(0, responseBody)
-        roomsGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
-        roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+        setDarkWorldStatus()
+        if (inDarkWorld) {
+            if (darkGraph[currentRoomId].isNullOrEmpty())
+                darkGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
+            darkGraph[currentRoomId]?.set(0, responseBody)
+            darkGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
+            darkGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+        } else {
+            if (roomsGraph[currentRoomId].isNullOrEmpty())
+                roomsGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
+            roomsGraph[currentRoomId]?.set(0, responseBody)
+            roomsGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
+            roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+        }
         view_map.calculateSize()
     }
 
+    private fun setDarkWorldStatus() {
+        inDarkWorld = currentRoomId >= 500
+        swapWorldAssets()
+    }
+
+    private fun swapWorldAssets() {
+        if (inDarkWorld) {
+            layout_main.background = getDrawable(R.drawable.stone_dark)
+        } else {
+            layout_main.background = getDrawable(R.drawable.stone)
+        }
+    }
+
     private fun anticipateNextRoom(direction: String): String? {
-        val directionAssociations = roomsGraph[currentRoomId]?.get(1) as HashMap<*, *>
+        val directionAssociations: HashMap<*, *> = if (inDarkWorld) {
+            darkGraph[currentRoomId]?.get(1) as HashMap<*, *>
+        } else {
+            roomsGraph[currentRoomId]?.get(1) as HashMap<*, *>
+        }
         return (directionAssociations[direction] as Int?)?.toString()
     }
 
     private fun setRoomIdForPreviousRoom(direction: String?, roomId: Int?) {
         if (currentRoomId != roomId) {
-            @Suppress("UNCHECKED_CAST")
-            (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
+            if (inDarkWorld) {
+                @Suppress("UNCHECKED_CAST")
+                (darkGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
+            } else {
+                @Suppress("UNCHECKED_CAST")
+                (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
+            }
         }
     }
 
     private fun getDirectionsFromRoom(roomId: Int?): HashMap<String, Int?> {
         if (roomId == null)
             return hashMapOf()
-        val roomTrifecta: ArrayList<Any?> = roomsGraph[roomId] ?: arrayListOf()
+        val roomTrifecta: ArrayList<Any?> = if (inDarkWorld) {
+            darkGraph[roomId] ?: arrayListOf()
+        } else {
+            roomsGraph[roomId] ?: arrayListOf()
+        }
         @Suppress("UNCHECKED_CAST")
         return roomTrifecta[1] as HashMap<String, Int?>
     }
@@ -1240,8 +1425,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun validateRoomConnections(roomId: Int?): HashMap<String, Int?> {
-        val extractedRoomDetailsExits = (roomsGraph[roomId]?.get(0) as RoomDetails).exits
-        val extractedRoomConnections = roomsGraph[roomId]?.get(1) as HashMap<*, *>
+        val extractedRoomDetailsExits: List<String>?
+        val extractedRoomConnections: HashMap<*, *>
+        if (inDarkWorld) {
+            extractedRoomDetailsExits = (darkGraph[roomId]?.get(0) as RoomDetails).exits
+            extractedRoomConnections = darkGraph[roomId]?.get(1) as HashMap<*, *>
+        } else {
+            extractedRoomDetailsExits = (roomsGraph[roomId]?.get(0) as RoomDetails).exits
+            extractedRoomConnections = roomsGraph[roomId]?.get(1) as HashMap<*, *>
+        }
         val validExits: HashMap<String, Int?> = hashMapOf()
         extractedRoomDetailsExits?.forEach {
             validExits[it] = extractedRoomConnections[it] as Int?
@@ -1250,28 +1442,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fillCellDetails(roomId: Int?): CellDetails {
-        val extractedRoomDetails: RoomDetails = roomsGraph[roomId]?.get(0) as RoomDetails
+        val extractedRoomDetails: RoomDetails = if (inDarkWorld) {
+            darkGraph[roomId]?.get(0) as RoomDetails
+        } else {
+            roomsGraph[roomId]?.get(0) as RoomDetails
+        }
         val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
-        val cellColor: String = when (extractedRoomDetails.title) {
-            "A misty room" -> "#${Color.LTGRAY.toHexString()}"
-            "Shop" -> "#4D6200EE"
-            "JKMT Donuts" -> "#4DF18C8C"
-            "A brightly lit room" -> "#FFAB00"
-            "Arron's Athenaeum" -> "#4D0091EA"
-            "The Peak of Mt. Holloway" -> "#4D4B80A1"
-            "Mt. Holloway" -> "#${Color.DKGRAY.toHexString()}"
-            "Pirate Ry's" -> "#98000000"
-            "Wishing Well" -> "#65A67A06"
-            "Red Egg Pizza Parlor" -> "#4DDD2C00"
-            "The Transmogriphier" -> "#${Color.MAGENTA.toHexString()}"
-            "Sandofsky's Sanctum" -> "#BF0878BD"
-            "A Dark Cave" -> "#BE6200EA"
-            "Glasowyn's Grave" -> "#BF9C4607"
-            "Linh's Shrine" -> "#7FFFD600"
-            "Fully Shrine" -> "#7FB3FF00"
-            else -> "#FF6D00"
-        }
+        val cellColor: String = Color.TRANSPARENT.toHexString()
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), cellColor)
     }
 
@@ -1352,7 +1530,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getCurrentRoomDetails(): RoomDetails {
-        return roomsGraph[currentRoomId]?.get(0) as RoomDetails
+        return if (inDarkWorld) {
+            darkGraph[currentRoomId]?.get(0) as RoomDetails
+        } else {
+            roomsGraph[currentRoomId]?.get(0) as RoomDetails
+        }
     }
 
     private fun moveToUnexploredAutomated(pauseInSeconds: Int = 16) {
@@ -1367,7 +1549,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isInitDataDownloaded(): Boolean {
-        if (roomsGraph.isEmpty() || currentRoomId == -1) {
+        if ((inDarkWorld && darkGraph.isEmpty()) || (!inDarkWorld && roomsGraph.isEmpty()) || (currentRoomId == -1)) {
             UserInteraction.inform(this, "Please do a GET 'Init' first...")
             return false
         }
@@ -1384,7 +1566,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun isProofDataDownloaded(): Boolean {
         if (proof.proof == null) {
-            UserInteraction.inform(this, "Please do a GET 'Last_proof' first...")
+            UserInteraction.inform(this, "Please do a GET 'Last proof' first...")
             return false
         }
         return true

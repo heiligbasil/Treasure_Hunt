@@ -42,13 +42,13 @@ interface SellInterface {
 }
 
 interface WearInterface {
-    @GET("adv/wear/")
-    fun getWear(): Call<RoomDetails>
+    @POST("adv/wear/")
+    fun postWear(@Body treasure: Treasure): Call<Status>
 }
 
 interface UndressInterface {
-    @GET("adv/undress/")
-    fun getUndress(): Call<RoomDetails>
+    @POST("adv/undress/")
+    fun postUndress(@Body treasure: Treasure): Call<Status>
 }
 
 interface ExamineInterface {
@@ -79,11 +79,6 @@ interface FlyInterface {
 interface DashInterface {
     @POST("adv/dash/")
     fun postDash(@Body dash: Dash): Call<RoomDetails>
-}
-
-interface PlayerStateInterface {
-    @GET("adv/player_state/")
-    fun getPlayerState(): Call<RoomDetails>
 }
 
 interface TransmogrifyInterface {
