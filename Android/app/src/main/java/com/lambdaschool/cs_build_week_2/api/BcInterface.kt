@@ -14,11 +14,6 @@ interface BcMineInterface {
     fun postMove(@Body mine: Mine): Call<ExamineShort>
 }
 
-interface BcTotalsInterface {
-    @GET("bc/totals/")
-    fun getMove(): Call<Proof>
-}
-
 interface BcLastProofInterface {
     @GET("bc/last_proof/")
     fun getLastProof(): Call<Proof>

@@ -81,11 +81,6 @@ interface DashInterface {
     fun postDash(@Body dash: Dash): Call<RoomDetails>
 }
 
-interface PlayerStateInterface {
-    @GET("adv/player_state/")
-    fun getPlayerState(): Call<RoomDetails>
-}
-
 interface TransmogrifyInterface {
     @POST("adv/transmogrify/")
     fun postTransmogrify(@Body treasure: Treasure): Call<RoomDetails>

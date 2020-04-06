@@ -54,11 +54,17 @@ class MainActivity : AppCompatActivity() {
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
         val cellDetails = CellDetails()
         val roomsGraph = HashMap<Int?, ArrayList<Any?>>()
+        val darkGraph = HashMap<Int?, ArrayList<Any?>>()
+        var inDarkWorld = false
         var authorizationToken: String? = null
         lateinit var preferences: SharedPreferences
+        lateinit var preferencesDark: SharedPreferences
         fun initializeCompanion(context: Context) {
             if (!Companion::preferences.isInitialized) {
                 preferences = context.getSharedPreferences("RoomsData", Context.MODE_PRIVATE)
+            }
+            if (!Companion::preferencesDark.isInitialized) {
+                preferencesDark = context.getSharedPreferences("DarkData", Context.MODE_PRIVATE)
             }
         }
     }
@@ -71,11 +77,10 @@ class MainActivity : AppCompatActivity() {
         startActivity(Intent(this, InitialActivity::class.java))
         text_room_info.setOnLongClickListener {
             if (isInitDataDownloaded()) {
-                var descriptionToCopy: String = ""
-                if (getCurrentRoomDetails().title == "Wishing Well") {
-                    descriptionToCopy = examineShort.description ?: "Nothing copied!"
+                val descriptionToCopy: String = if (getCurrentRoomDetails().title == "Wishing Well") {
+                    examineShort.description ?: "Nothing copied!"
                 } else if (mine.proof != -1) {
-                    descriptionToCopy = mine.proof.toString()
+                    mine.proof.toString()
                 } else {
                     return@setOnLongClickListener false
                 }
@@ -97,7 +102,7 @@ class MainActivity : AppCompatActivity() {
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
-                val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
+                val roomItems = (getCurrentRoomDetails()).items as ArrayList<String>
                 if (roomItems.isNotEmpty()) {
                     val treasure: Treasure = Treasure(roomItems.first())
                     roomItems.removeAt(0)
@@ -180,15 +185,16 @@ class MainActivity : AppCompatActivity() {
         }
         button_examine.setOnClickListener {
             if (isInitDataDownloaded()) {
-                if (getCurrentRoomDetails().title == "Wishing Well") {
+                val currentRoomDetails: RoomDetails = getCurrentRoomDetails()
+                if (currentRoomDetails.title == "Wishing Well") {
                     networkPostExamineShort(Treasure("Well"))
-                } else if (getCurrentRoomDetails().title == "Arron's Athenaeum") {
+                } else if (currentRoomDetails.title == "Arron's Athenaeum") {
                     networkPostExamineShort(Treasure("Book"))
                 } else {
-                    val roomItems = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).items as ArrayList<String>
-                    val players = (roomsGraph[currentRoomId]?.get(0) as RoomDetails).players as ArrayList<String>
-                    val inventoryItems = inventoryStatus.inventory ?: arrayListOf()
-                    val combined = roomItems + players + inventoryItems
+                    val roomItems: java.util.ArrayList<String> = (currentRoomDetails).items as ArrayList<String>
+                    val players: java.util.ArrayList<String> = (currentRoomDetails).players as ArrayList<String>
+                    val inventoryItems: List<String> = inventoryStatus.inventory ?: arrayListOf()
+                    val combined: List<String> = roomItems + players + inventoryItems
                     if (combined.isNotEmpty()) {
                         val treasure: Treasure = Treasure(combined.random())
                         networkPostExamineTreasure(treasure)
@@ -498,6 +504,7 @@ class MainActivity : AppCompatActivity() {
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
+                    SharedPrefs.saveState()
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
                     val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
@@ -837,6 +844,7 @@ class MainActivity : AppCompatActivity() {
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
+                    SharedPrefs.saveState()
                 } else {
                     val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
                     val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
@@ -1171,6 +1179,8 @@ class MainActivity : AppCompatActivity() {
                     } else {
                         "Warp success!\n${responseBody.messages?.joinToString("\n")}"
                     }
+                    updateGraphDetails(responseBody)
+                    SharedPrefs.saveState()
                     text_log.append(message + "\n")
                     scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                     UserInteraction.inform(applicationContext, message)
@@ -1342,30 +1352,56 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateGraphDetails(responseBody: RoomDetails?) {
         currentRoomId = responseBody?.roomId ?: 0
-        if (roomsGraph[currentRoomId].isNullOrEmpty())
-            roomsGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
-        roomsGraph[currentRoomId]?.set(0, responseBody)
-        roomsGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
-        roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+        setDarkWorldStatus()
+        if (inDarkWorld) {
+            if (darkGraph[currentRoomId].isNullOrEmpty())
+                darkGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
+            darkGraph[currentRoomId]?.set(0, responseBody)
+            darkGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
+            darkGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+        } else {
+            if (roomsGraph[currentRoomId].isNullOrEmpty())
+                roomsGraph[currentRoomId] = arrayListOf<Any?>(roomDetails, roomConnections, cellDetails)
+            roomsGraph[currentRoomId]?.set(0, responseBody)
+            roomsGraph[currentRoomId]?.set(1, validateRoomConnections(currentRoomId))
+            roomsGraph[currentRoomId]?.set(2, fillCellDetails(currentRoomId))
+        }
         view_map.calculateSize()
     }
 
+    private fun setDarkWorldStatus() {
+        inDarkWorld = currentRoomId >= 500
+    }
+
     private fun anticipateNextRoom(direction: String): String? {
-        val directionAssociations = roomsGraph[currentRoomId]?.get(1) as HashMap<*, *>
+        val directionAssociations: HashMap<*, *> = if (inDarkWorld) {
+            darkGraph[currentRoomId]?.get(1) as HashMap<*, *>
+        } else {
+            roomsGraph[currentRoomId]?.get(1) as HashMap<*, *>
+        }
         return (directionAssociations[direction] as Int?)?.toString()
     }
 
     private fun setRoomIdForPreviousRoom(direction: String?, roomId: Int?) {
         if (currentRoomId != roomId) {
-            @Suppress("UNCHECKED_CAST")
-            (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
+            if (inDarkWorld) {
+                @Suppress("UNCHECKED_CAST")
+                (darkGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
+            } else {
+                @Suppress("UNCHECKED_CAST")
+                (roomsGraph[currentRoomId]!![1] as HashMap<String, Int?>)[direction ?: "n"] = roomId
+            }
         }
     }
 
     private fun getDirectionsFromRoom(roomId: Int?): HashMap<String, Int?> {
         if (roomId == null)
             return hashMapOf()
-        val roomTrifecta: ArrayList<Any?> = roomsGraph[roomId] ?: arrayListOf()
+        val roomTrifecta: ArrayList<Any?> = if (inDarkWorld) {
+            darkGraph[roomId] ?: arrayListOf()
+        } else {
+            roomsGraph[roomId] ?: arrayListOf()
+        }
         @Suppress("UNCHECKED_CAST")
         return roomTrifecta[1] as HashMap<String, Int?>
     }
@@ -1380,8 +1416,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun validateRoomConnections(roomId: Int?): HashMap<String, Int?> {
-        val extractedRoomDetailsExits = (roomsGraph[roomId]?.get(0) as RoomDetails).exits
-        val extractedRoomConnections = roomsGraph[roomId]?.get(1) as HashMap<*, *>
+        val extractedRoomDetailsExits: List<String>?
+        val extractedRoomConnections: HashMap<*, *>
+        if (inDarkWorld) {
+            extractedRoomDetailsExits = (darkGraph[roomId]?.get(0) as RoomDetails).exits
+            extractedRoomConnections = darkGraph[roomId]?.get(1) as HashMap<*, *>
+        } else {
+            extractedRoomDetailsExits = (roomsGraph[roomId]?.get(0) as RoomDetails).exits
+            extractedRoomConnections = roomsGraph[roomId]?.get(1) as HashMap<*, *>
+        }
         val validExits: HashMap<String, Int?> = hashMapOf()
         extractedRoomDetailsExits?.forEach {
             validExits[it] = extractedRoomConnections[it] as Int?
@@ -1390,7 +1433,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fillCellDetails(roomId: Int?): CellDetails {
-        val extractedRoomDetails: RoomDetails = roomsGraph[roomId]?.get(0) as RoomDetails
+        val extractedRoomDetails: RoomDetails = if (inDarkWorld) {
+            darkGraph[roomId]?.get(0) as RoomDetails
+        } else {
+            roomsGraph[roomId]?.get(0) as RoomDetails
+        }
         val coordinates: String = extractedRoomDetails.coordinates ?: "(0,0)"
         val coordinatesSplit: List<String> = coordinates.substring(1, coordinates.length - 1).split(",")
         val cellColor: String = Color.TRANSPARENT.toHexString()
@@ -1474,7 +1521,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getCurrentRoomDetails(): RoomDetails {
-        return roomsGraph[currentRoomId]?.get(0) as RoomDetails
+        return if (inDarkWorld) {
+            darkGraph[currentRoomId]?.get(0) as RoomDetails
+        } else {
+            roomsGraph[currentRoomId]?.get(0) as RoomDetails
+        }
     }
 
     private fun moveToUnexploredAutomated(pauseInSeconds: Int = 16) {
@@ -1489,7 +1540,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun isInitDataDownloaded(): Boolean {
-        if (roomsGraph.isEmpty() || currentRoomId == -1) {
+        if ((inDarkWorld && darkGraph.isEmpty()) || (!inDarkWorld && roomsGraph.isEmpty()) || (currentRoomId == -1)) {
             UserInteraction.inform(this, "Please do a GET 'Init' first...")
             return false
         }

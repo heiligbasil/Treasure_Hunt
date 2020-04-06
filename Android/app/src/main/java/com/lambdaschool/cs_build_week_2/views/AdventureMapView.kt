@@ -10,7 +10,10 @@ import android.view.View
 import com.lambdaschool.cs_build_week_2.models.CellDetails
 import com.lambdaschool.cs_build_week_2.models.RoomDetails
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
+import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.darkGraph
+import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.inDarkWorld
 import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.roomsGraph
+import java.util.ArrayList
 import kotlin.math.max
 import kotlin.math.min
 
@@ -68,8 +71,9 @@ class AdventureMapView @JvmOverloads constructor(
     }
 
     fun calculateSize() {
-        if (roomsGraph.isEmpty())
+        if ((inDarkWorld && darkGraph.isEmpty()) || (!inDarkWorld && roomsGraph.isEmpty())) {
             return
+        }
         convertCoordinatesToGrid()
         cellHeight = height / max((cellsGrid.size - ((shiftXGridBy + shiftYGridBy) / 2)), 1) + 12
         cellWidth = cellHeight
@@ -78,17 +82,25 @@ class AdventureMapView @JvmOverloads constructor(
     }
 
     private fun convertCoordinatesToGrid() {
-        val cellsList = hashMapOf<Int?, CellDetails>()
-        val xs = arrayListOf<Int>()
-        val ys = arrayListOf<Int>()
-        roomsGraph.forEach {
-            cellsList[it.key] = it.value[2] as CellDetails
-            xs.add((it.value[2] as CellDetails).gridX)
-            ys.add((it.value[2] as CellDetails).gridY)
+        val cellsList: HashMap<Int?, CellDetails> = hashMapOf<Int?, CellDetails>()
+        val xs: ArrayList<Int> = arrayListOf<Int>()
+        val ys: ArrayList<Int> = arrayListOf<Int>()
+        if (inDarkWorld) {
+            roomsGraph.forEach {
+                cellsList[it.key] = it.value[2] as CellDetails
+                xs.add((it.value[2] as CellDetails).gridX)
+                ys.add((it.value[2] as CellDetails).gridY)
+            }
+        } else {
+            roomsGraph.forEach {
+                cellsList[it.key] = it.value[2] as CellDetails
+                xs.add((it.value[2] as CellDetails).gridX)
+                ys.add((it.value[2] as CellDetails).gridY)
+            }
         }
-        val largestXcoord = xs.max() ?: 0
-        val largestYcoord = ys.max() ?: 0
-        val size = max(largestXcoord, largestYcoord) + 1
+        val largestXcoord: Int = xs.max() ?: 0
+        val largestYcoord :Int= ys.max() ?: 0
+        val size: Int = max(largestXcoord, largestYcoord) + 1
         cellsGrid = Array(size) { Array(size) { -1 } }
         cellsList.forEach {
             cellsGrid[it.value.gridY][it.value.gridX] = it.key ?: -1
@@ -107,9 +119,17 @@ class AdventureMapView @JvmOverloads constructor(
         for (x in -shiftXGridBy until cellsGrid.size - shiftXGridBy) {
             for (y in shiftYGridBy until cellsGrid.size + shiftYGridBy) {
                 if (cellsGrid[y - shiftYGridBy][x + shiftXGridBy] > -1) {
-                    val cellNumber = cellsGrid[y - shiftYGridBy][x + shiftXGridBy]
-                    val exitDirections = roomsGraph[cellNumber]?.get(1) as HashMap<*, *>
-                    val cellTitle = (roomsGraph[cellNumber]?.get(0) as RoomDetails).title
+                    val cellNumber: Int = cellsGrid[y - shiftYGridBy][x + shiftXGridBy]
+                    val exitDirections: HashMap<*, *> = if (inDarkWorld) {
+                        darkGraph[cellNumber]?.get(1) as HashMap<*, *>
+                    } else {
+                        roomsGraph[cellNumber]?.get(1) as HashMap<*, *>
+                    }
+                    val cellTitle: String? = if (inDarkWorld) {
+                        (darkGraph[cellNumber]?.get(0) as RoomDetails).title
+                    } else {
+                        (roomsGraph[cellNumber]?.get(0) as RoomDetails).title
+                    }
                     cellPaint.color = Color.parseColor(
                         when (cellTitle) {
                             "A brightly lit room" -> "#9AFFD600"
@@ -223,13 +243,16 @@ class AdventureMapView @JvmOverloads constructor(
      */
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
-            val reversed: List<Array<Int>> = cellsGrid.reversed()
             val column = (event.y / cellWidth).toInt() - 3
             val row = (event.x / cellHeight).toInt() + 47
             val selectedCell: Int = cellsGrid[column][row]
             /*coords="($row,$column) $selectedCell"*/
             if (selectedCell > -1) {
-                val roomDetails: RoomDetails = (roomsGraph[selectedCell]?.get(0) as RoomDetails)
+                val roomDetails: RoomDetails = if (inDarkWorld) {
+                    (darkGraph[selectedCell]?.get(0) as RoomDetails)
+                } else {
+                    (roomsGraph[selectedCell]?.get(0) as RoomDetails)
+                }
                 UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Confirm", null)
                 MainActivity.traverseToRoom = selectedCell
             }
