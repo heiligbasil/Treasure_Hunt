@@ -3,9 +3,10 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layout_main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/stone"
+    android:background="@color/colorCloudFade"
     tools:context=".views.MainActivity">
 
     <FrameLayout
@@ -533,9 +534,9 @@
                 android:background="@color/colorRubyFade"
                 android:fontFamily="sans-serif-smallcaps"
                 android:maxLines="99999"
+                android:overScrollMode="always"
                 android:textColor="@color/colorRuby"
                 android:textFontWeight="900"
-                android:overScrollMode="always"
                 android:textSize="10sp" />
         </androidx.core.widget.NestedScrollView>
     </FrameLayout>

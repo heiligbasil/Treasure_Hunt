@@ -13,9 +13,8 @@ import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.darkGraph
 import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.inDarkWorld
 import com.lambdaschool.cs_build_week_2.views.MainActivity.Companion.roomsGraph
-import java.util.ArrayList
+import java.util.*
 import kotlin.math.max
-import kotlin.math.min
 
 class AdventureMapView @JvmOverloads constructor(
     context: Context,
@@ -99,7 +98,7 @@ class AdventureMapView @JvmOverloads constructor(
             }
         }
         val largestXcoord: Int = xs.max() ?: 0
-        val largestYcoord :Int= ys.max() ?: 0
+        val largestYcoord: Int = ys.max() ?: 0
         val size: Int = max(largestXcoord, largestYcoord) + 1
         cellsGrid = Array(size) { Array(size) { -1 } }
         cellsList.forEach {
@@ -117,9 +116,9 @@ class AdventureMapView @JvmOverloads constructor(
         if (!calculated)
             return
         if (inDarkWorld) {
-            cellPaintText.color=Color.parseColor("#4DB9C5CC")
+            cellPaintText.color = Color.parseColor("#B9C5CC")
         } else {
-            cellPaintText.color=Color.parseColor("#CC0B215A")
+            cellPaintText.color = Color.parseColor("#0B215A")
         }
         for (x in -shiftXGridBy until cellsGrid.size - shiftXGridBy) {
             for (y in shiftYGridBy until cellsGrid.size + shiftYGridBy) {

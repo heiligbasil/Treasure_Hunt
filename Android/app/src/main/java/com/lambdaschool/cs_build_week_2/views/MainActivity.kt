@@ -1371,6 +1371,15 @@ class MainActivity : AppCompatActivity() {
 
     private fun setDarkWorldStatus() {
         inDarkWorld = currentRoomId >= 500
+        swapWorldAssets()
+    }
+
+    private fun swapWorldAssets() {
+        if (inDarkWorld) {
+            layout_main.background = getDrawable(R.drawable.stone_dark)
+        } else {
+            layout_main.background = getDrawable(R.drawable.stone)
+        }
     }
 
     private fun anticipateNextRoom(direction: String): String? {
