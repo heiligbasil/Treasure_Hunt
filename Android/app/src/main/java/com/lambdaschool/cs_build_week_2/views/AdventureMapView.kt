@@ -86,7 +86,7 @@ class AdventureMapView @JvmOverloads constructor(
         val xs: ArrayList<Int> = arrayListOf<Int>()
         val ys: ArrayList<Int> = arrayListOf<Int>()
         if (inDarkWorld) {
-            roomsGraph.forEach {
+            darkGraph.forEach {
                 cellsList[it.key] = it.value[2] as CellDetails
                 xs.add((it.value[2] as CellDetails).gridX)
                 ys.add((it.value[2] as CellDetails).gridY)
@@ -136,6 +136,7 @@ class AdventureMapView @JvmOverloads constructor(
                             "A misty room" -> "#65B8D5B6"
                             "A Dark Cave" -> "#7FA10A0A"
                             "Mt. Holloway" -> "#B2276BCF"
+                            "Darkness" -> "#B2333B47"
                             "Shop" -> "#CC42A304"
                             "Wishing Well" -> "#CC42A304"
                             "JKMT Donuts" -> "#CC42A304"
