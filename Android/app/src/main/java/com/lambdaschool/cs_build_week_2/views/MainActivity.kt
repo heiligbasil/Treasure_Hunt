@@ -97,8 +97,8 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-//            moveToUnexploredAutomated(pauseInSeconds = 16)
-            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 8)
+            moveToUnexploredAutomated(pauseInSeconds = 10)
+//            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 8)
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
@@ -1210,17 +1210,17 @@ class MainActivity : AppCompatActivity() {
             }.build())
             .build()
         val service: BcMineInterface = retrofit.create(BcMineInterface::class.java)
-        val call: Call<ExamineShort> = service.postMove(mine)
-        call.enqueue(object : Callback<ExamineShort> {
-            override fun onFailure(call: Call<ExamineShort>, t: Throwable) {
+        val call: Call<Transaction> = service.postMine(mine)
+        call.enqueue(object : Callback<Transaction> {
+            override fun onFailure(call: Call<Transaction>, t: Throwable) {
                 text_log.append("${t.message}\n")
                 scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
                 UserInteraction.inform(applicationContext, t.message ?: "Failure")
             }
 
-            override fun onResponse(call: Call<ExamineShort>, response: Response<ExamineShort>) {
+            override fun onResponse(call: Call<Transaction>, response: Response<Transaction>) {
                 if (response.isSuccessful) {
-                    val responseBody: ExamineShort = response.body() as ExamineShort
+                    val responseBody: Transaction = response.body() as Transaction
                     cooldownAmount = responseBody.cooldown
                     text_room_info.text = responseBody.toString()
                     var message: String = "Code ${response.code()}: "
