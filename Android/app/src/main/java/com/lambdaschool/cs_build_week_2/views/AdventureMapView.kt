@@ -116,6 +116,11 @@ class AdventureMapView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         if (!calculated)
             return
+        if (inDarkWorld) {
+            cellPaintText.color=Color.parseColor("#4DB9C5CC")
+        } else {
+            cellPaintText.color=Color.parseColor("#CC0B215A")
+        }
         for (x in -shiftXGridBy until cellsGrid.size - shiftXGridBy) {
             for (y in shiftYGridBy until cellsGrid.size + shiftYGridBy) {
                 if (cellsGrid[y - shiftYGridBy][x + shiftXGridBy] > -1) {
@@ -136,7 +141,7 @@ class AdventureMapView @JvmOverloads constructor(
                             "A misty room" -> "#65B8D5B6"
                             "A Dark Cave" -> "#7FA10A0A"
                             "Mt. Holloway" -> "#B2276BCF"
-                            "Darkness" -> "#B2333B47"
+                            "Darkness" -> "#80333B47"
                             "Shop" -> "#CC42A304"
                             "Wishing Well" -> "#CC42A304"
                             "JKMT Donuts" -> "#CC42A304"
