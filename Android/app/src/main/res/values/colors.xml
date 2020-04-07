@@ -16,4 +16,5 @@
     <color name="colorCupidFade">#4DDD2C00</color>
     <color name="colorSky">#0091EA</color>
     <color name="colorSkyFade">#4D0091EA</color>
+    <color name="colorTransparent">#43000000</color>
 </resources>

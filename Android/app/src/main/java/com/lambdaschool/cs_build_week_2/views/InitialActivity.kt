@@ -1,15 +1,13 @@
 package com.lambdaschool.cs_build_week_2.views
 
 import android.os.Bundle
-import android.view.Gravity
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.synthetic.main.activity_initial.*
 
-class InitialActivity : AppCompatActivity() {
+class InitialActivity : AppCompatActivity(), SelectionFragment.OnListFragmentInteractionListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,8 +21,22 @@ class InitialActivity : AppCompatActivity() {
                 finish()
                 overridePendingTransition(0, android.R.anim.fade_out)
             } else {
-                UserInteraction.inform(this,"Invalid token. Try again...")
+                UserInteraction.inform(this, "Invalid token. Try again...")
             }
         }
+
+        val selectionFragment: SelectionFragment = SelectionFragment()
+        val listBundle = Bundle()
+        listBundle.putStringArrayList(
+            selectionFragment.selectionTag,
+            arrayListOf("boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk")
+        )
+        selectionFragment.arguments = listBundle
+        selectionFragment.isCancelable = false
+        selectionFragment.show(supportFragmentManager, selectionFragment.selectionTag)
+    }
+
+    override fun onListFragmentInteraction(item: String) {
+        return
     }
 }
