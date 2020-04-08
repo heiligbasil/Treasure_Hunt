@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.adapters.SelectionAdapter
+import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.dialog_selection.view.*
 import java.util.*
@@ -26,6 +27,7 @@ class SelectionDialog : DialogFragment() {
         const val colorTag = "tint_color"
         const val enumTag = "enum_selection"
     }
+
     private var listener: OnSelectionDialogInteractionListener? = null
     private var listSelection: ArrayList<String> = arrayListOf()
     private var tintColor: Int = R.color.colorAmber
@@ -33,7 +35,7 @@ class SelectionDialog : DialogFragment() {
 
     @Parcelize
     enum class Selections : Parcelable {
-        NONE, TAKE, DROP, BUY, SELL, WEAR, UNDRESS, EXAMINE, CHANGE_NAME, DASH, TRANSMOGRIFY, CARRY
+        NONE, TAKE, DROP, BUY, SELL, WEAR, UNDRESS, EXAMINE, DASH, TRANSMOGRIFY, CARRY
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,10 +64,21 @@ class SelectionDialog : DialogFragment() {
             this.dismiss()
         }
         view.dialog_selection_button_confirm.setOnClickListener {
-            val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = view.dialog_selection_recycler_view_container.adapter
-            listener?.onSelectionDialogInteraction((adapter as SelectionAdapter).getSelectedItem())
+            val adapter = view.dialog_selection_recycler_view_container.adapter as SelectionAdapter
+            when (enumSelection) {
+                Selections.TAKE -> listener?.onSelectionDialogInteractionTake(adapter.getSelectedItem())
+                Selections.DROP -> listener?.onSelectionDialogInteractionDrop(adapter.getSelectedItem())
+                Selections.BUY -> listener?.onSelectionDialogInteractionBuy(adapter.getSelectedItem())
+                Selections.SELL -> listener?.onSelectionDialogInteractionSell(adapter.getSelectedItem())
+                Selections.WEAR -> listener?.onSelectionDialogInteractionWear(adapter.getSelectedItem())
+                Selections.UNDRESS -> listener?.onSelectionDialogInteractionUndress(adapter.getSelectedItem())
+                Selections.EXAMINE -> listener?.onSelectionDialogInteractionExamine(adapter.getSelectedItem())
+                Selections.DASH -> listener?.onSelectionDialogInteractionDash(adapter.getSelectedItem())
+                Selections.TRANSMOGRIFY -> listener?.onSelectionDialogInteractionTransmogrify(adapter.getSelectedItem())
+                Selections.CARRY -> listener?.onSelectionDialogInteractionCarry(adapter.getSelectedItem())
+                else -> UserInteraction.inform(this.context ?: requireContext(), "Problem showing selection dialog...")
+            }
         }
-
         return view
     }
 
@@ -84,7 +97,16 @@ class SelectionDialog : DialogFragment() {
     }
 
     interface OnSelectionDialogInteractionListener {
-        fun onSelectionDialogInteraction(item: String)
+        fun onSelectionDialogInteractionTake(item: String)
+        fun onSelectionDialogInteractionDrop(item: String)
+        fun onSelectionDialogInteractionBuy(item: String)
+        fun onSelectionDialogInteractionSell(item: String)
+        fun onSelectionDialogInteractionWear(item: String)
+        fun onSelectionDialogInteractionUndress(item: String)
+        fun onSelectionDialogInteractionExamine(item: String)
+        fun onSelectionDialogInteractionDash(item: String)
+        fun onSelectionDialogInteractionTransmogrify(item: String)
+        fun onSelectionDialogInteractionCarry(item: String)
     }
 
 }

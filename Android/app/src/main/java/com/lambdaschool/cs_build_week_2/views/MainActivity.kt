@@ -32,7 +32,7 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInteractionListener {
 
     companion object {
         var traversalTimer = Timer()
@@ -76,6 +76,7 @@ class MainActivity : AppCompatActivity() {
         title = "Lambda Treasure Hunt"
         initializeCompanion(this)
         startActivity(Intent(this, InitialActivity::class.java))
+
         text_room_info.setOnLongClickListener {
             if (isInitDataDownloaded()) {
                 val descriptionToCopy: String = if (getCurrentRoomDetails().title == "Wishing Well") {
@@ -98,16 +99,14 @@ class MainActivity : AppCompatActivity() {
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-            moveToUnexploredAutomated(pauseInSeconds = 10)
-//            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 8)
+//            moveToUnexploredAutomated(pauseInSeconds = 10)
+            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 6)
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
-                val roomItems = (getCurrentRoomDetails()).items as ArrayList<String>
+                val roomItems: ArrayList<String> = (getCurrentRoomDetails()).items as ArrayList<String>
                 if (roomItems.isNotEmpty()) {
-                    val treasure: Treasure = Treasure(roomItems.first())
-                    roomItems.removeAt(0)
-                    networkPostTakeTreasure(treasure)
+                    showSelectionDialog(roomItems, R.color.colorForest, SelectionDialog.Selections.TAKE)
                 } else {
                     UserInteraction.inform(this, "Nothing to take!")
                 }
@@ -115,12 +114,9 @@ class MainActivity : AppCompatActivity() {
         }
         button_drop.setOnClickListener {
             if (isStatusDataDownloaded()) {
-                val inventoryItems: MutableList<String> = inventoryStatus.inventory?.toMutableList() ?: arrayListOf()
+                val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
                 if (inventoryItems.isNotEmpty()) {
-                    val treasure: Treasure = Treasure(inventoryItems.first())
-                    inventoryItems.removeAt(0)
-                    inventoryStatus.inventory = inventoryItems
-                    networkPostDrop(treasure)
+                    showSelectionDialog(inventoryItems, R.color.colorRuby, SelectionDialog.Selections.DROP)
                 } else {
                     UserInteraction.inform(this, "Nothing to drop!")
                 }
@@ -135,24 +131,14 @@ class MainActivity : AppCompatActivity() {
                 } else if (getCurrentRoomDetails().title == "JKMT Donuts") {
                     whatToBuy = "Donut"
                 }
-                networkPostBuyTreasure(Treasure(whatToBuy, "yes"))
+                showSelectionDialog(arrayListOf(whatToBuy), R.color.colorForest, SelectionDialog.Selections.BUY)
             }
         }
         button_sell.setOnClickListener {
             if (isStatusDataDownloaded()) {
-                val inventoryItems: MutableList<String> = inventoryStatus.inventory?.toMutableList() ?: arrayListOf()
+                val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
                 if (inventoryItems.isNotEmpty()) {
-                    val treasure: Treasure = Treasure(inventoryItems.first(), "yes")
-                    inventoryItems.removeAt(0)
-                    inventoryStatus.inventory = inventoryItems
-                    networkPostSellTreasure(treasure)
-                    /*UserInteraction.askQuestion(
-                        this,
-                        "Mechanical Shopkeeper",
-                        "Are you sure you want to sell '${treasure.name}'?",
-                        "Confirm",
-                        "Just browsing"
-                    )*/
+                    showSelectionDialog(inventoryItems, R.color.colorRuby, SelectionDialog.Selections.SELL)
                 } else {
                     UserInteraction.inform(this, "Nothing to sell!")
                 }
@@ -160,12 +146,17 @@ class MainActivity : AppCompatActivity() {
         }
         button_wear.setOnClickListener {
             if (isStatusDataDownloaded()) {
-                val footwear: String = "nice boots"
-                val bodywear: String = "nice jacket"
-                if (inventoryStatus.inventory?.contains(footwear) == true) {
-                    networkPostWear(Treasure(footwear))
-                } else if (inventoryStatus.inventory?.contains(bodywear) == true) {
-                    networkPostWear(Treasure(bodywear))
+                val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+                val wearables: ArrayList<String> = arrayListOf()
+                val footwear: String = "boots"
+                val bodywear: String = "jacket"
+                inventoryItems.forEach {
+                    if (it.contains(footwear, true) || it.contains(bodywear, true)) {
+                        wearables.add(it)
+                    }
+                }
+                if (wearables.isNotEmpty()) {
+                    showSelectionDialog(wearables, R.color.colorCupid, SelectionDialog.Selections.WEAR)
                 } else {
                     UserInteraction.inform(this, "Nothing to wear!")
                 }
@@ -173,12 +164,17 @@ class MainActivity : AppCompatActivity() {
         }
         button_undress.setOnClickListener {
             if (isStatusDataDownloaded()) {
-                val footwear: String = "nice boots"
-                val bodywear: String = "nice jacket"
-                if (inventoryStatus.footwear?.toLowerCase(Locale.getDefault())?.contains(footwear) == true) {
-                    networkPostUndress(Treasure(footwear))
-                } else if (inventoryStatus.bodywear?.toLowerCase(Locale.getDefault())?.contains(bodywear) == true) {
-                    networkPostUndress(Treasure(bodywear))
+                val wearables: ArrayList<String> = arrayListOf()
+                val footwear: String = "boots"
+                val bodywear: String = "jacket"
+                if (inventoryStatus.footwear?.contains(footwear, true) == true) {
+                    wearables.add(inventoryStatus.footwear ?: footwear)
+                }
+                if (inventoryStatus.bodywear?.contains(bodywear, true) == true) {
+                    wearables.add(inventoryStatus.bodywear ?: bodywear)
+                }
+                if (wearables.isNotEmpty()) {
+                    showSelectionDialog(wearables, R.color.colorAmber, SelectionDialog.Selections.UNDRESS)
                 } else {
                     UserInteraction.inform(this, "Nothing to undress!")
                 }
@@ -187,54 +183,59 @@ class MainActivity : AppCompatActivity() {
         button_examine.setOnClickListener {
             if (isInitDataDownloaded()) {
                 val currentRoomDetails: RoomDetails = getCurrentRoomDetails()
+                var whatToExamine: String = ""
                 if (currentRoomDetails.title == "Wishing Well") {
-                    networkPostExamineShort(Treasure("Well"))
+                    whatToExamine = "Well"
                 } else if (currentRoomDetails.title == "Arron's Athenaeum") {
-                    networkPostExamineShort(Treasure("Book"))
+                    whatToExamine = "Book"
+                }
+                val combined: ArrayList<String> = arrayListOf()
+                if (whatToExamine.isNotEmpty()) {
+                    combined.add(whatToExamine)
+                }
+                val players: ArrayList<String> = (currentRoomDetails).players as ArrayList<String>
+                combined.addAll(players)
+                val roomItems: ArrayList<String> = (currentRoomDetails).items as ArrayList<String>
+                combined.addAll(roomItems)
+                val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+                combined.addAll(inventoryItems)
+                if (combined.isNotEmpty()) {
+                    showSelectionDialog(combined, R.color.colorForest, SelectionDialog.Selections.EXAMINE)
                 } else {
-                    val roomItems: java.util.ArrayList<String> = (currentRoomDetails).items as ArrayList<String>
-                    val players: java.util.ArrayList<String> = (currentRoomDetails).players as ArrayList<String>
-                    val inventoryItems: List<String> = inventoryStatus.inventory ?: arrayListOf()
-                    val combined: List<String> = roomItems + players + inventoryItems
-                    if (combined.isNotEmpty()) {
-                        val treasure: Treasure = Treasure(combined.random())
-                        networkPostExamineTreasure(treasure)
-                    } else {
-                        UserInteraction.inform(this, "Nothing to Examine!")
-                    }
+                    UserInteraction.inform(this, "Nothing to Examine!")
                 }
             }
         }
-        button_change_name.setOnClickListener { networkPostChangeName(Treasure("Basil der Grosse", "aye")) }
+        button_change_name.setOnClickListener {
+            //TODO: Allow for a custom input
+            networkPostChangeName(Treasure("Basil der Grosse", "aye"))
+        }
         button_pray.setOnClickListener {
             networkPostPray()
         }
         button_dash.setOnClickListener {
-            val directionAndPath: HashMap<String, ArrayList<Int?>> =
-                hashMapOf(Pair("n", arrayListOf()), Pair("s", arrayListOf()), Pair("e", arrayListOf()), Pair("w", arrayListOf()))
-            directionAndPath.forEach { eachDirection ->
-                var roomId: Int? = currentRoomId
-                do {
-                    val directionsFromRoom: HashMap<String, Int?> = getDirectionsFromRoom(roomId)
-                    roomId = directionsFromRoom[eachDirection.key]
-                    if (roomId != null)
-                        directionAndPath[eachDirection.key]?.add(roomId)
-                } while (roomId != null)
-            }
-            val dash: Dash = Dash("", "0", "")
-            val easierListToProcess: HashMap<String, String> = hashMapOf()
-            directionAndPath.forEach {
-                easierListToProcess[it.key] = it.value.joinToString(separator = ",")
-                if (it.value.size > dash.num_rooms.toInt()) {
-                    dash.direction = it.key
-                    dash.num_rooms = it.value.size.toString()
-                    dash.next_room_ids = it.value.joinToString(separator = ",")
-                }
-            }
-            networkPostDash(dash)
+            showSelectionDialog(
+                arrayListOf("North", "South", "East", "West", "Arbitrary"),
+                R.color.colorSky,
+                SelectionDialog.Selections.DASH
+            )
         }
-        button_transmogrify.setOnClickListener { networkPostTransmogrify(Treasure("Small Treasure")) }
-        button_carry.setOnClickListener { networkPostCarry(Treasure("Tiny Treasure")) }
+        button_transmogrify.setOnClickListener {
+            val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+            if (inventoryItems.isNotEmpty()) {
+                showSelectionDialog(inventoryItems, R.color.colorRuby, SelectionDialog.Selections.TRANSMOGRIFY)
+            } else {
+                UserInteraction.inform(this, "Nothing to transmogrify!")
+            }
+        }
+        button_carry.setOnClickListener {
+            val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+            if (inventoryItems.isNotEmpty()) {
+                showSelectionDialog(inventoryItems, R.color.colorRuby, SelectionDialog.Selections.CARRY)
+            } else {
+                UserInteraction.inform(this, "Nothing to carry!")
+            }
+        }
         button_receive.setOnClickListener { networkPostReceive() }
         button_warp.setOnClickListener { networkPostWarp() }
         button_recall.setOnClickListener { networkPostRecall() }
@@ -248,10 +249,107 @@ class MainActivity : AppCompatActivity() {
         button_get_balance.setOnClickListener { networkGetBalance() }
     }
 
-    private fun handleNetworkFailure(failureMessage: String?) {
-        text_log.append("$failureMessage\n")
-        scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-        UserInteraction.inform(applicationContext, failureMessage ?: "Failure")
+    private fun showSelectionDialog(list: ArrayList<String>, color: Int, enum: SelectionDialog.Selections) {
+        val selectionDialog: SelectionDialog = SelectionDialog()
+        val listBundle = Bundle()
+        listBundle.putStringArrayList(SelectionDialog.selectionTag, list)
+        listBundle.putInt(SelectionDialog.colorTag, color)
+        listBundle.putParcelable(SelectionDialog.enumTag, enum)
+        selectionDialog.arguments = listBundle
+        selectionDialog.isCancelable = false
+        selectionDialog.show(supportFragmentManager, SelectionDialog.selectionTag)
+    }
+
+    override fun onSelectionDialogInteractionTake(item: String) {
+        val roomItems: ArrayList<String> = (getCurrentRoomDetails()).items as ArrayList<String>
+        roomItems.remove(item)
+        // TODO: Add to Inventory items
+        networkPostTakeTreasure(Treasure(item))
+    }
+
+    override fun onSelectionDialogInteractionDrop(item: String) {
+        val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+        inventoryItems.remove(item)
+        inventoryStatus.inventory = inventoryItems
+        //TODO: Add to Room items
+        networkPostDrop(Treasure(item))
+    }
+
+    override fun onSelectionDialogInteractionBuy(item: String) {
+        //TODO: Add to Inventory items
+        networkPostBuyTreasure(Treasure(item, "yes"))
+    }
+
+    override fun onSelectionDialogInteractionSell(item: String) {
+        val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+        inventoryItems.remove(item)
+        inventoryStatus.inventory = inventoryItems
+        networkPostSellTreasure(Treasure(item, "yes"))
+    }
+
+    override fun onSelectionDialogInteractionWear(item: String) {
+        val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+        inventoryItems.remove(item)
+        inventoryStatus.inventory = inventoryItems
+        networkPostWear(Treasure(item))
+    }
+
+    override fun onSelectionDialogInteractionUndress(item: String) {
+        //TODO: Remove from equip
+        //TODO: Add to Inventory items
+        networkPostUndress(Treasure(item))
+    }
+
+    override fun onSelectionDialogInteractionExamine(item: String) {
+        if (item.contains("Book", true) || item.contains("Well", true)) {
+            networkPostExamineShort(Treasure(item))
+        } else {
+            networkPostExamineTreasure(Treasure(item))
+        }
+    }
+
+    override fun onSelectionDialogInteractionDash(item: String) {
+        val directionAndPath: HashMap<String, ArrayList<Int?>> =
+            hashMapOf(Pair("n", arrayListOf()), Pair("s", arrayListOf()), Pair("e", arrayListOf()), Pair("w", arrayListOf()))
+        directionAndPath.forEach { eachDirection ->
+            var roomId: Int? = currentRoomId
+            do {
+                val directionsFromRoom: HashMap<String, Int?> = getDirectionsFromRoom(roomId)
+                roomId = directionsFromRoom[eachDirection.key]
+                if (roomId != null)
+                    directionAndPath[eachDirection.key]?.add(roomId)
+            } while (roomId != null)
+        }
+        val dash: Dash = Dash("", "0", "")
+        if (item.equals("Arbitrary", true)) {
+            directionAndPath.forEach {
+                if (it.value.size > dash.num_rooms.toInt()) {
+                    dash.direction = it.key
+                    dash.num_rooms = it.value.size.toString()
+                    dash.next_room_ids = it.value.joinToString(separator = ",")
+                }
+            }
+        } else {
+            val truncatedDirection: String = item[0].toLowerCase().toString()
+            dash.direction = truncatedDirection
+            dash.num_rooms = directionAndPath[truncatedDirection]?.size.toString()
+            dash.next_room_ids = directionAndPath[truncatedDirection]?.joinToString(separator = ",") ?: ""
+        }
+        networkPostDash(dash)
+    }
+
+    override fun onSelectionDialogInteractionTransmogrify(item: String) {
+        val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+        inventoryItems.remove(item)
+        inventoryStatus.inventory = inventoryItems
+        networkPostTransmogrify(Treasure(item));
+    }
+
+    override fun onSelectionDialogInteractionCarry(item: String) {
+        val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
+        inventoryItems.remove(item)
+        inventoryStatus.inventory = inventoryItems
+        networkPostCarry(Treasure(item))
     }
 
     private fun networkGetInit() {
@@ -943,6 +1041,12 @@ class MainActivity : AppCompatActivity() {
         UserInteraction.inform(applicationContext, errorText)
     }
 
+    private fun handleNetworkFailure(failureMessage: String?) {
+        text_log.append("$failureMessage\n")
+        scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+        UserInteraction.inform(applicationContext, failureMessage ?: "Failure")
+    }
+
     private fun retrofitGetBuilder(): Retrofit {
         return Retrofit.Builder()
             .baseUrl(baseUrl)
@@ -1144,6 +1248,11 @@ class MainActivity : AppCompatActivity() {
 
     @OptIn(ExperimentalStdlibApi::class)
     val myRunnableSpecific = Runnable {
+        /*if (automatedPath.isEmpty()) {
+            UserInteraction.inform(this, "I'm lost...")
+            traversalTimer.cancel()
+            return@Runnable
+        }*/
         val destinationRoom: Int? = automatedPath.last()
         val direction: String? = getDirectionForRoom(automatedPath.removeFirst())
         if (direction == null) {
