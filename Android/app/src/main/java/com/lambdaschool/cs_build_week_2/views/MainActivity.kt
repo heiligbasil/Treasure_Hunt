@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
         var traverseToRoom: Int = 309
         var mine: Mine = Mine(-1)
         var proof: Proof = Proof()
+        const val baseUrl = "https://lambda-treasure-hunt.herokuapp.com/api/"
         val roomDetails: RoomDetails = RoomDetails()
         val cardinalReference: HashMap<String, String> = hashMapOf(Pair("n", "s"), Pair("s", "n"), Pair("e", "w"), Pair("w", "e"))
         val roomConnections: HashMap<String, Int?> = hashMapOf(Pair("n", null), Pair("s", null), Pair("e", null), Pair("w", null))
@@ -247,60 +248,45 @@ class MainActivity : AppCompatActivity() {
         button_get_balance.setOnClickListener { networkGetBalance() }
     }
 
+    private fun handleNetworkFailure(failureMessage: String?) {
+        text_log.append("$failureMessage\n")
+        scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+        UserInteraction.inform(applicationContext, failureMessage ?: "Failure")
+    }
+
     private fun networkGetInit() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitGetBuilder()
         val service: InitInterface = retrofit.create(InitInterface::class.java)
         val call: Call<RoomDetails> = service.getRoomInit()
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
+                    networkResponseSuccess(
+                        "Init",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     updateGraphDetails(responseBody)
                     SharedPrefs.saveState()
-                    text_room_info.text = responseBody.toString()
-                    text_log.append("Code ${response.code()}: Init success!\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, "${response.code()}: Init success!")
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
         })
     }
 
+
     private fun networkPostMove(moveWisely: MoveWisely) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: MoveInterface = retrofit.create(MoveInterface::class.java)
         val call: Call<RoomDetails> = service.postMove(moveWisely)
         var executeResponse: Response<RoomDetails>? = null
@@ -312,38 +298,14 @@ class MainActivity : AppCompatActivity() {
             responseMessage = "RuntimeException: ${rte.message}\n"
         }
         if (executeResponse?.isSuccessful == true) {
-            val originalRoomId: Int = currentRoomId
-            val responseAsRoomDetails: RoomDetails = executeResponse.body() as RoomDetails
-            responseRoomInfo = responseAsRoomDetails.toString()
-            cooldownAmount = responseAsRoomDetails.cooldown
-            responseMessage = "Code ${executeResponse.code()}: "
-            if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
-                responseMessage += "Move failure (\"${moveWisely.direction}\")\n${responseAsRoomDetails.errors?.joinToString("\n")}"
-            } else {
-                responseMessage += "Move success!\n${responseAsRoomDetails.messages?.joinToString("\n")}"
-                updateGraphDetails(responseAsRoomDetails)
-                setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
-                SharedPrefs.saveState()
-            }
+            synchronousResponseSuccess(executeResponse, moveWisely, "Move")
         } else {
-            val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-            val errorBody: ErrorBody = Gson().fromJson(executeResponse?.errorBody()?.string(), errorBodyTypeCast)
-            responseMessage = "${executeResponse?.message()} ${executeResponse?.code()}:\n$errorBody"
-            cooldownAmount = errorBody.cooldown
+            synchronousResponseError(executeResponse)
         }
     }
 
     private fun networkPostFly(moveWisely: MoveWisely) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: FlyInterface = retrofit.create(FlyInterface::class.java)
         val call: Call<RoomDetails> = service.postFly(moveWisely)
         var executeResponse: Response<RoomDetails>? = null
@@ -355,66 +317,58 @@ class MainActivity : AppCompatActivity() {
             responseMessage = "RuntimeException: ${rte.message}\n"
         }
         if (executeResponse?.isSuccessful == true) {
-            val originalRoomId: Int = currentRoomId
-            val responseAsRoomDetails: RoomDetails = executeResponse.body() as RoomDetails
-            responseRoomInfo = responseAsRoomDetails.toString()
-            cooldownAmount = responseAsRoomDetails.cooldown
-            responseMessage = "Code ${executeResponse.code()}: "
-            if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
-                responseMessage += "Fly failure (\"${moveWisely.direction}\")\n${responseAsRoomDetails.errors?.joinToString("\n")}"
-            } else {
-                responseMessage += "Fly success!\n${responseAsRoomDetails.messages?.joinToString("\n")}"
-                updateGraphDetails(responseAsRoomDetails)
-                setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
-                SharedPrefs.saveState()
-            }
+            synchronousResponseSuccess(executeResponse, moveWisely, "Fly")
         } else {
-            val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-            val errorBody: ErrorBody = Gson().fromJson(executeResponse?.errorBody()?.string(), errorBodyTypeCast)
-            responseMessage = "${executeResponse?.message()} ${executeResponse?.code()}:\n$errorBody"
-            cooldownAmount = errorBody.cooldown
+            synchronousResponseError(executeResponse)
         }
     }
 
+    private fun synchronousResponseSuccess(executeResponse: Response<RoomDetails>, moveWisely: MoveWisely, task: String) {
+        val originalRoomId: Int = currentRoomId
+        val responseAsRoomDetails: RoomDetails = executeResponse.body() as RoomDetails
+        responseRoomInfo = responseAsRoomDetails.toString()
+        cooldownAmount = responseAsRoomDetails.cooldown
+        responseMessage = "Code ${executeResponse.code()}: "
+        if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
+            responseMessage += "$task failure (\"${moveWisely.direction}\")\n${responseAsRoomDetails.errors?.joinToString("\n")}"
+        } else {
+            responseMessage += "$task success!\n${responseAsRoomDetails.messages?.joinToString("\n")}"
+            updateGraphDetails(responseAsRoomDetails)
+            setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
+            SharedPrefs.saveState()
+        }
+    }
+
+    private fun synchronousResponseError(executeResponse: Response<RoomDetails>?) {
+        val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+        val errorBody: ErrorBody = Gson().fromJson(executeResponse?.errorBody()?.string(), errorBodyTypeCast)
+        responseMessage = "${executeResponse?.message()} ${executeResponse?.code()}:\n$errorBody"
+        cooldownAmount = errorBody.cooldown
+    }
+
     private fun networkPostStatus() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: StatusInterface = retrofit.create(StatusInterface::class.java)
         val call: Call<Status> = service.postStatus()
         call.enqueue(object : Callback<Status> {
             override fun onFailure(call: Call<Status>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<Status>, response: Response<Status>) {
                 if (response.isSuccessful) {
                     val responseBody: Status = response.body() as Status
+                    networkResponseSuccess(
+                        "Status",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     inventoryStatus = responseBody
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    val message: String =
-                        "Code ${response.code()}: Inventory status success! ${responseBody.messages?.joinToString("\n")}"
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -422,47 +376,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostPray() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: PrayInterface = retrofit.create(PrayInterface::class.java)
         val call: Call<RoomDetails> = service.postPray()
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Pray failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Pray success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Pray",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -470,49 +404,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostRecall() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: RecallInterface = retrofit.create(RecallInterface::class.java)
         val call: Call<RoomDetails> = service.postRecall()
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Recall failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Recall success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
+                    networkResponseSuccess(
+                        "Recall",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     updateGraphDetails(responseBody)
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
                     SharedPrefs.saveState()
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -520,47 +434,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostBuyTreasure(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: BuyInterface = retrofit.create(BuyInterface::class.java)
         val call: Call<RoomDetails> = service.postBuy(treasure)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Buy failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Buy success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Buy",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -568,48 +462,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostWear(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: WearInterface = retrofit.create(WearInterface::class.java)
         val call: Call<Status> = service.postWear(treasure)
         call.enqueue(object : Callback<Status> {
             override fun onFailure(call: Call<Status>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<Status>, response: Response<Status>) {
                 if (response.isSuccessful) {
                     val responseBody: Status = response.body() as Status
+                    networkResponseSuccess(
+                        "Wear",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     inventoryStatus = responseBody
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Wear failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Wear success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -617,48 +491,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostUndress(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: UndressInterface = retrofit.create(UndressInterface::class.java)
         val call: Call<Status> = service.postUndress(treasure)
         call.enqueue(object : Callback<Status> {
             override fun onFailure(call: Call<Status>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<Status>, response: Response<Status>) {
                 if (response.isSuccessful) {
                     val responseBody: Status = response.body() as Status
+                    networkResponseSuccess(
+                        "Undress",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     inventoryStatus = responseBody
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Undress failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Undress success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -666,47 +520,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostChangeName(treasureName: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: ChangeNameInterface = retrofit.create(ChangeNameInterface::class.java)
         val call: Call<RoomDetails> = service.postChangeName(treasureName)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Change name failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Change name success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Change name",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -714,47 +548,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostSellTreasure(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: SellInterface = retrofit.create(SellInterface::class.java)
         val call: Call<RoomDetails> = service.postSell(treasure)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Sell failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Sell success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Sell",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -762,47 +576,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostTransmogrify(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: TransmogrifyInterface = retrofit.create(TransmogrifyInterface::class.java)
         val call: Call<RoomDetails> = service.postTransmogrify(treasure)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Transmogrify failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Transmogrify success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Transmogrify",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -810,49 +604,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostDash(dash: Dash) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: DashInterface = retrofit.create(DashInterface::class.java)
         val call: Call<RoomDetails> = service.postDash(dash)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Dash failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Dash success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
+                    networkResponseSuccess(
+                        "Dash",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     updateGraphDetails(responseBody)
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
                     SharedPrefs.saveState()
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -860,47 +634,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostExamineTreasure(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: ExamineInterface = retrofit.create(ExamineInterface::class.java)
-        val call: Call<RoomDetails> = service.postExamine(treasure)
-        call.enqueue(object : Callback<RoomDetails> {
-            override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+        val call: Call<Examine> = service.postExamine(treasure)
+        call.enqueue(object : Callback<Examine> {
+            override fun onFailure(call: Call<Examine>, t: Throwable) {
+                handleNetworkFailure(t.message)
             }
 
-            override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
+            override fun onResponse(call: Call<Examine>, response: Response<Examine>) {
                 if (response.isSuccessful) {
-                    val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Examine failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Examine success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    val responseBody: Examine = response.body() as Examine
+                    networkResponseSuccess(
+                        "Examine",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -908,48 +662,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostExamineShort(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: ExamineShortInterface = retrofit.create(ExamineShortInterface::class.java)
         val call: Call<ExamineShort> = service.postExamineShort(treasure)
         call.enqueue(object : Callback<ExamineShort> {
             override fun onFailure(call: Call<ExamineShort>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<ExamineShort>, response: Response<ExamineShort>) {
                 if (response.isSuccessful) {
                     val responseBody: ExamineShort = response.body() as ExamineShort
+                    networkResponseSuccess(
+                        "Examine",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     examineShort = responseBody
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Examine failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Examine success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -957,47 +691,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostDrop(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: DropInterface = retrofit.create(DropInterface::class.java)
         val call: Call<RoomDetails> = service.postDrop(treasure)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Drop failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Drop success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Drop",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -1005,47 +719,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostTakeTreasure(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: TakeInterface = retrofit.create(TakeInterface::class.java)
         val call: Call<RoomDetails> = service.postTake(treasure)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Take failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Take success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Take",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -1053,47 +747,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostCarry(treasure: Treasure) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: CarryInterface = retrofit.create(CarryInterface::class.java)
         val call: Call<RoomDetails> = service.postCarry(treasure)
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Carry failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Carry success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Carry",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -1101,47 +775,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostReceive() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: ReceiveInterface = retrofit.create(ReceiveInterface::class.java)
         val call: Call<RoomDetails> = service.postReceive()
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
-                    val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Receive failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Receive success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Receive",
+                        response.body()?.cooldown,
+                        response.body().toString(),
+                        response.code(),
+                        response.body()?.errors,
+                        response.body()?.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -1149,49 +802,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostWarp() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder()
         val service: WarpInterface = retrofit.create(WarpInterface::class.java)
         val call: Call<RoomDetails> = service.postWarp()
         call.enqueue(object : Callback<RoomDetails> {
             override fun onFailure(call: Call<RoomDetails>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<RoomDetails>, response: Response<RoomDetails>) {
                 if (response.isSuccessful) {
                     val responseBody: RoomDetails = response.body() as RoomDetails
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Warp failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Warp success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
+                    networkResponseSuccess(
+                        "Warp",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     updateGraphDetails(responseBody)
                     SharedPrefs.saveState()
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -1199,47 +832,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkPostMine(mine: Mine) {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().readTimeout(60, TimeUnit.SECONDS).addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitPostBuilder(30L)
         val service: BcMineInterface = retrofit.create(BcMineInterface::class.java)
         val call: Call<Transaction> = service.postMine(mine)
         call.enqueue(object : Callback<Transaction> {
             override fun onFailure(call: Call<Transaction>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<Transaction>, response: Response<Transaction>) {
                 if (response.isSuccessful) {
                     val responseBody: Transaction = response.body() as Transaction
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    var message: String = "Code ${response.code()}: "
-                    message += if (responseBody.errors?.isNotEmpty() == true) {
-                        "Mine failure!\n${responseBody.errors?.joinToString("\n")}"
-                    } else {
-                        "Mine success!\n${responseBody.messages?.joinToString("\n")}"
-                    }
-                    text_log.append(message + "\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, message)
+                    networkResponseSuccess(
+                        "Mine",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -1247,41 +860,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkGetLastProof() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(OkHttpClient.Builder().addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("Authorization", "Token $authorizationToken").build()
-                chain.proceed(request)
-            }.build())
-            .build()
+        val retrofit: Retrofit = retrofitGetBuilder()
         val service: BcLastProofInterface = retrofit.create(BcLastProofInterface::class.java)
         val call: Call<Proof> = service.getLastProof()
         call.enqueue(object : Callback<Proof> {
             override fun onFailure(call: Call<Proof>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
+                handleNetworkFailure(t.message)
             }
 
             override fun onResponse(call: Call<Proof>, response: Response<Proof>) {
                 if (response.isSuccessful) {
                     val responseBody: Proof = response.body() as Proof
-                    cooldownAmount = responseBody.cooldown
+                    networkResponseSuccess(
+                        "Last proof",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
                     proof = responseBody
-                    text_room_info.text = responseBody.toString()
-                    text_log.append("Code ${response.code()}: Last proof success!\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, "${response.code()}: Last proof success!")
                 } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
                 }
                 showCooldownTimer()
             }
@@ -1289,8 +889,60 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkGetBalance() {
-        val retrofit: Retrofit = Retrofit.Builder()
-            .baseUrl("https://lambda-treasure-hunt.herokuapp.com/api/")
+        val retrofit: Retrofit = retrofitGetBuilder()
+        val service: BcGetBalanceInterface = retrofit.create(BcGetBalanceInterface::class.java)
+        val call: Call<Balance> = service.getBalance()
+        call.enqueue(object : Callback<Balance> {
+            override fun onFailure(call: Call<Balance>, t: Throwable) {
+                handleNetworkFailure(t.message)
+            }
+
+            override fun onResponse(call: Call<Balance>, response: Response<Balance>) {
+                if (response.isSuccessful) {
+                    val responseBody: Balance = response.body() as Balance
+                    networkResponseSuccess(
+                        "Get balance",
+                        responseBody.cooldown,
+                        responseBody.toString(),
+                        response.code(),
+                        responseBody.errors,
+                        responseBody.messages
+                    )
+                } else {
+                    networkResponseError(response.errorBody().toString(), response.message(), response.code())
+                }
+                showCooldownTimer()
+            }
+        })
+    }
+
+    private fun networkResponseSuccess(task: String, time: Double?, str: String, code: Int, errs: List<String>?, msgs: List<String>?) {
+        cooldownAmount = time
+        text_room_info.text = str
+        var message: String = "Code $code: "
+        message += if (errs?.isNotEmpty() == true) {
+            "$task failure!\n${errs.joinToString("\n")}"
+        } else {
+            "$task success!\n${msgs?.joinToString("\n")}"
+        }
+        text_log.append(message + "\n")
+        scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+        UserInteraction.inform(applicationContext, message)
+    }
+
+    private fun networkResponseError(errorBodyString: String, errorMessage: String, errorCode: Int) {
+        val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
+        val errorBody: ErrorBody = Gson().fromJson(errorBodyString, errorBodyTypeCast)
+        val errorText = "$errorMessage $errorCode:\n$errorBody"
+        cooldownAmount = errorBody.cooldown
+        text_log.append("$errorText\n")
+        scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+        UserInteraction.inform(applicationContext, errorText)
+    }
+
+    private fun retrofitGetBuilder(): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
             .addConverterFactory(GsonConverterFactory.create())
             .client(OkHttpClient.Builder().addInterceptor { chain ->
                 val request = chain.request().newBuilder()
@@ -1298,35 +950,19 @@ class MainActivity : AppCompatActivity() {
                 chain.proceed(request)
             }.build())
             .build()
-        val service: BcGetBalanceInterface = retrofit.create(BcGetBalanceInterface::class.java)
-        val call: Call<Balance> = service.getBalance()
-        call.enqueue(object : Callback<Balance> {
-            override fun onFailure(call: Call<Balance>, t: Throwable) {
-                text_log.append("${t.message}\n")
-                scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                UserInteraction.inform(applicationContext, t.message ?: "Failure")
-            }
+    }
 
-            override fun onResponse(call: Call<Balance>, response: Response<Balance>) {
-                if (response.isSuccessful) {
-                    val responseBody: Balance = response.body() as Balance
-                    cooldownAmount = responseBody.cooldown
-                    text_room_info.text = responseBody.toString()
-                    text_log.append("Code ${response.code()}: Get balance success!\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, "${response.code()}: Get balance success!")
-                } else {
-                    val errorBodyTypeCast: Type = object : TypeToken<ErrorBody>() {}.type
-                    val errorBody: ErrorBody = Gson().fromJson(response.errorBody()?.string(), errorBodyTypeCast)
-                    val errorText = "${response.message()} ${response.code()}:\n$errorBody"
-                    cooldownAmount = errorBody.cooldown
-                    text_log.append("$errorText\n")
-                    scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-                    UserInteraction.inform(applicationContext, errorText)
-                }
-                showCooldownTimer()
-            }
-        })
+    private fun retrofitPostBuilder(timeout: Long = 10L): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(OkHttpClient.Builder().readTimeout(timeout, TimeUnit.SECONDS).addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", "Token $authorizationToken").build()
+                chain.proceed(request)
+            }.build())
+            .build()
     }
 
     private fun moveInDirection(direction: String) {

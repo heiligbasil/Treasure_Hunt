@@ -3,7 +3,7 @@ package com.lambdaschool.cs_build_week_2.models
 class Balance {
     var cooldown: Double? = null
     var errors: List<String>? = null
-    var messages: List<Any>? = null
+    var messages: List<String>? = null
 
     /**
      * Returns a string representation of the object.

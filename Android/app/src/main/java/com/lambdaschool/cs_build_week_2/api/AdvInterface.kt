@@ -53,7 +53,7 @@ interface UndressInterface {
 
 interface ExamineInterface {
     @POST("adv/examine/")
-    fun postExamine(@Body treasure: Treasure): Call<RoomDetails>
+    fun postExamine(@Body treasure: Treasure): Call<Examine>
 }
 
 interface ExamineShortInterface {
