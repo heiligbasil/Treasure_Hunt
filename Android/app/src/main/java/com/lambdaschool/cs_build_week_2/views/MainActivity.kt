@@ -214,11 +214,22 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             networkPostPray()
         }
         button_dash.setOnClickListener {
-            showSelectionDialog(
-                arrayListOf("North", "South", "East", "West", "Arbitrary"),
-                R.color.colorSky,
-                SelectionDialog.Selections.DASH
-            )
+            val directionsFromRoom: HashMap<String, Int?> = getDirectionsFromRoom(currentRoomId)
+            val directionChoices: ArrayList<String> = arrayListOf()
+            directionsFromRoom.forEach {
+                when (it.key) {
+                    "n" -> directionChoices.add("North")
+                    "s" -> directionChoices.add("South")
+                    "e" -> directionChoices.add("East")
+                    "w" -> directionChoices.add("West")
+                }
+            }
+            if (directionChoices.isNotEmpty()) {
+                directionChoices.add("Arbitrary")
+                showSelectionDialog(directionChoices, R.color.colorSky, SelectionDialog.Selections.DASH)
+            } else {
+                UserInteraction.inform(this, "Nowhere to dash!")
+            }
         }
         button_transmogrify.setOnClickListener {
             val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
