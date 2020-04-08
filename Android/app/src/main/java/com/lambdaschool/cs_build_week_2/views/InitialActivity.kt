@@ -28,14 +28,14 @@ class InitialActivity : AppCompatActivity(), SelectionFragment.OnListFragmentInt
         val selectionFragment: SelectionFragment = SelectionFragment()
         val listBundle = Bundle()
         listBundle.putStringArrayList(
-            selectionFragment.selectionTag,
+            SelectionFragment.selectionTag,
             arrayListOf("boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk")
         )
-        listBundle.putInt(selectionFragment.colorTag,R.color.colorForest)
-        listBundle.putParcelable(selectionFragment.enumTag, SelectionFragment.Selections.TAKE)
+        listBundle.putInt(SelectionFragment.colorTag,R.color.colorForest)
+        listBundle.putParcelable(SelectionFragment.enumTag, SelectionFragment.Selections.TAKE)
         selectionFragment.arguments = listBundle
         selectionFragment.isCancelable = false
-        selectionFragment.show(supportFragmentManager, selectionFragment.selectionTag)
+        selectionFragment.show(supportFragmentManager, SelectionFragment.selectionTag)
     }
 
     override fun onListFragmentInteraction(item: String) {

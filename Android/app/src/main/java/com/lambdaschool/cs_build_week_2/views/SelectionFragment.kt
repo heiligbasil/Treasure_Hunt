@@ -20,13 +20,15 @@ import java.util.*
 
 class SelectionFragment : DialogFragment() {
 
+    companion object {
+        const val selectionTag = "item_list"
+        const val colorTag = "tint_color"
+        const val enumTag = "enum_selection"
+    }
     private var listener: OnListFragmentInteractionListener? = null
     private var listSelection: ArrayList<String> = arrayListOf()
     private var tintColor: Int = R.color.colorAmber
     private var enumSelection: Selections = Selections.NONE
-    val selectionTag = "item_list"
-    val colorTag = "tint_color"
-    val enumTag = "enum_selection"
 
     @Parcelize
     enum class Selections : Parcelable {
@@ -36,9 +38,9 @@ class SelectionFragment : DialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (arguments != null) {
-            listSelection = arguments?.getStringArrayList(selectionTag) ?: arrayListOf()
-            tintColor = arguments?.getInt(colorTag) ?: tintColor
-            enumSelection = arguments?.getParcelable(enumTag) ?: Selections.NONE
+            listSelection = arguments?.getStringArrayList(Companion.selectionTag) ?: arrayListOf()
+            tintColor = arguments?.getInt(Companion.colorTag) ?: tintColor
+            enumSelection = arguments?.getParcelable(Companion.enumTag) ?: Selections.NONE
         }
     }
 
@@ -83,4 +85,5 @@ class SelectionFragment : DialogFragment() {
     interface OnListFragmentInteractionListener {
         fun onListFragmentInteraction(item: String)
     }
+
 }
