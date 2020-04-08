@@ -330,9 +330,12 @@ class MainActivity : AppCompatActivity() {
         cooldownAmount = responseAsRoomDetails.cooldown
         responseMessage = "Code ${executeResponse.code()}: "
         if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
-            responseMessage += "$task failure (\"${moveWisely.direction}\")\n${responseAsRoomDetails.errors?.joinToString("\n")}"
+            responseMessage += "$task failure (\"${moveWisely.direction}\") ${responseAsRoomDetails.errors?.joinToString(
+                "\n",
+                prefix = "\n"
+            )?.trim()}"
         } else {
-            responseMessage += "$task success!\n${responseAsRoomDetails.messages?.joinToString("\n")}"
+            responseMessage += "$task success! ${responseAsRoomDetails.messages?.joinToString("\n", prefix = "\n")?.trim()}"
             updateGraphDetails(responseAsRoomDetails)
             setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
             SharedPrefs.saveState()
@@ -917,15 +920,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun networkResponseSuccess(task: String, time: Double?, str: String, code: Int, errs: List<String>?, msgs: List<String>?) {
-        cooldownAmount = time
-        text_room_info.text = str
         var message: String = "Code $code: "
         message += if (errs?.isNotEmpty() == true) {
-            "$task failure!\n${errs.joinToString("\n")}"
+            "$task failure! ${errs.joinToString("\n", prefix = "\n").trim()}"
         } else {
-            "$task success!\n${msgs?.joinToString("\n")}"
+            "$task success! ${msgs?.joinToString("\n", prefix = "\n")?.trim()}"
         }
-        text_log.append(message + "\n")
+        cooldownAmount = time
+        text_room_info.text = str
+        text_log.append("$message\n")
         scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
         UserInteraction.inform(applicationContext, message)
     }
@@ -979,7 +982,7 @@ class MainActivity : AppCompatActivity() {
             networkThread.start()
             networkThread.join()
             text_room_info.text = responseRoomInfo
-            text_log.append(responseMessage)
+            text_log.append("$responseMessage\n")
             scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
             UserInteraction.inform(applicationContext, responseMessage)
             showCooldownTimer()
