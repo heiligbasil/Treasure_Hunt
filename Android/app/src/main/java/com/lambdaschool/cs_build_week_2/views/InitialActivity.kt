@@ -7,7 +7,7 @@ import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.synthetic.main.activity_initial.*
 
-class InitialActivity : AppCompatActivity(), InputDialog.OnInputDialogInteractionListener {
+class InitialActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,17 +24,5 @@ class InitialActivity : AppCompatActivity(), InputDialog.OnInputDialogInteractio
                 UserInteraction.inform(this, "Invalid token. Try again...")
             }
         }
-        val inputDialog=InputDialog()
-        val bundle=Bundle()
-        bundle.putString(InputDialog.textTag,"sample")
-        bundle.putInt(InputDialog.colorTag,R.color.colorCupid)
-        bundle.putParcelable(InputDialog.enumTag,InputDialog.Inputs.CHANGE_NAME)
-        inputDialog.arguments=bundle
-        inputDialog.isCancelable=false
-        inputDialog.show(supportFragmentManager,InputDialog.textTag)
-    }
-
-    override fun onInputDialogInteractionChangeName(text: String) {
-        return
     }
 }

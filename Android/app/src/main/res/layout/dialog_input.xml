@@ -5,9 +5,9 @@
     android:id="@+id/dialog_input_layout"
     android:layout_width="match_parent"
     android:layout_height="300dp"
-    android:background="@drawable/celtic_side"
+    android:background="@drawable/knots"
     android:backgroundTint="@color/colorForest"
-    android:backgroundTintMode="src_atop"
+    android:backgroundTintMode="screen"
     android:minWidth="285dp"
     android:minHeight="235dp">
 

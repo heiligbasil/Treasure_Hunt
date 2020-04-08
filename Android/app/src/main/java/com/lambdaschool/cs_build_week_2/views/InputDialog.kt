@@ -45,12 +45,9 @@ class InputDialog : DialogFragment() {
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view: View = inflater.inflate(R.layout.dialog_input, container, false)
         view.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(view.context, colorInput))
-        view.dialog_input_edit_text.setText(textInput)
         view.dialog_input_edit_text.addTextChangedListener {
             if (it.isNullOrEmpty()) {
                 view.dialog_input_button_confirm.isEnabled = false
@@ -60,6 +57,8 @@ class InputDialog : DialogFragment() {
                 view.dialog_input_button_confirm.backgroundTintList = ContextCompat.getColorStateList(view.context, R.color.colorForest)
             }
         }
+        view.dialog_input_edit_text.setText(textInput)
+        view.dialog_input_edit_text.showSoftInputOnFocus = false
         view.dialog_input_button_cancel.setOnClickListener {
             this.dismiss()
         }

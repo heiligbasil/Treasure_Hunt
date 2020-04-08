@@ -32,7 +32,8 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
-class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInteractionListener {
+class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInteractionListener,
+    InputDialog.OnInputDialogInteractionListener {
 
     companion object {
         var traversalTimer = Timer()
@@ -207,8 +208,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             }
         }
         button_change_name.setOnClickListener {
-            //TODO: Allow for a custom input
-            networkPostChangeName(Treasure("Basil der Grosse", "aye"))
+            showInputDialog("Basil der Grosse", R.color.colorCupid, InputDialog.Inputs.CHANGE_NAME)
         }
         button_pray.setOnClickListener {
             networkPostPray()
@@ -271,6 +271,17 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         selectionDialog.show(supportFragmentManager, SelectionDialog.selectionTag)
     }
 
+    private fun showInputDialog(text: String, color: Int, enum: InputDialog.Inputs) {
+        val inputDialog: InputDialog = InputDialog()
+        val inputBundle = Bundle()
+        inputBundle.putString(InputDialog.textTag, text)
+        inputBundle.putInt(InputDialog.colorTag, color)
+        inputBundle.putParcelable(InputDialog.enumTag, enum)
+        inputDialog.arguments = inputBundle
+        inputDialog.isCancelable = false
+        inputDialog.show(supportFragmentManager, InputDialog.textTag)
+    }
+
     override fun onSelectionDialogInteractionTake(item: String) {
         val roomItems: ArrayList<String> = (getCurrentRoomDetails()).items as ArrayList<String>
         roomItems.remove(item)
@@ -317,6 +328,10 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         } else {
             networkPostExamineTreasure(Treasure(item))
         }
+    }
+
+    override fun onInputDialogInteractionChangeName(text: String) {
+        networkPostChangeName(Treasure(text, "aye"))
     }
 
     override fun onSelectionDialogInteractionDash(item: String) {
@@ -392,7 +407,6 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             }
         })
     }
-
 
     private fun networkPostMove(moveWisely: MoveWisely) {
         val retrofit: Retrofit = retrofitPostBuilder()
