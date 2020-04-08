@@ -10,7 +10,7 @@
     android:backgroundTint="@color/colorForest"
     android:backgroundTintMode="src_atop"
     android:minWidth="380dp"
-    android:minHeight="200dp">
+    android:minHeight="250dp">
 
     <TextView
         android:id="@+id/selection_fragment_text_view_heading"

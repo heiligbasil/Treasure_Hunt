@@ -3,6 +3,7 @@ package com.lambdaschool.cs_build_week_2.views
 import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.os.Parcelable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +13,7 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.lambdaschool.cs_build_week_2.R
+import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.fragment_selection.view.*
 import java.util.*
 
@@ -19,13 +21,24 @@ import java.util.*
 class SelectionFragment : DialogFragment() {
 
     private var listener: OnListFragmentInteractionListener? = null
-    private var listBundle: ArrayList<String> = arrayListOf()
+    private var listSelection: ArrayList<String> = arrayListOf()
+    private var tintColor: Int = R.color.colorAmber
+    private var enumSelection: Selections = Selections.NONE
     val selectionTag = "item_list"
+    val colorTag = "tint_color"
+    val enumTag = "enum_selection"
+
+    @Parcelize
+    enum class Selections : Parcelable {
+        NONE, TAKE, DROP, BUY, SELL, WEAR, UNDRESS, EXAMINE, CHANGE_NAME, DASH, TRANSMOGRIFY, CARRY
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (arguments != null) {
-            listBundle = arguments?.getStringArrayList(selectionTag) ?: arrayListOf()
+            listSelection = arguments?.getStringArrayList(selectionTag) ?: arrayListOf()
+            tintColor = arguments?.getInt(colorTag) ?: tintColor
+            enumSelection = arguments?.getParcelable(enumTag) ?: Selections.NONE
         }
     }
 
@@ -33,14 +46,23 @@ class SelectionFragment : DialogFragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val view: View = inflater.inflate(R.layout.fragment_selection, container, false)
-        /*view.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(view.context, R.color.colorAmber))*/
+        view.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(view.context, tintColor))
         with(view.selection_fragment_recycler_view_container) {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-            adapter = SelectionAdapter(listBundle, listener)
+            adapter = SelectionAdapter(listSelection)
             val dividerDecorator = DividerItemDecoration(context, RecyclerView.VERTICAL)
             ContextCompat.getDrawable(context, R.drawable.divider)?.let { dividerDecorator.setDrawable(it) }
             addItemDecoration(dividerDecorator)
         }
+
+        view.selection_fragment_button_cancel.setOnClickListener {
+            this.dismiss()
+        }
+        view.selection_fragment_button_confirm.setOnClickListener {
+            val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = view.selection_fragment_recycler_view_container.adapter
+            listener?.onListFragmentInteraction((adapter as SelectionAdapter).getSelectedItem())
+        }
+
         return view
     }
 
