@@ -78,6 +78,7 @@ class SelectionDialog : DialogFragment() {
                 Selections.CARRY -> listener?.onSelectionDialogInteractionCarry(adapter.getSelectedItem())
                 else -> UserInteraction.inform(this.context ?: requireContext(), "Problem showing selection dialog...")
             }
+            this.dismiss()
         }
         return view
     }
