@@ -1,4 +1,4 @@
-package com.lambdaschool.cs_build_week_2.views
+package com.lambdaschool.cs_build_week_2.adapters
 
 import android.view.LayoutInflater
 import android.view.View
@@ -43,6 +43,6 @@ class SelectionAdapter(private val itemList: ArrayList<String>) : RecyclerView.A
     override fun getItemCount(): Int = itemList.size
 
     inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
-        val textViewItem: TextView = view.recycler_view_element_text_view
+        val textViewItem: TextView = view.recycler_view_element_text_view_item
     }
 }

@@ -331,11 +331,11 @@ class MainActivity : AppCompatActivity() {
         responseMessage = "Code ${executeResponse.code()}: "
         if (responseAsRoomDetails.errors?.isNotEmpty() == true) {
             responseMessage += "$task failure (\"${moveWisely.direction}\") ${responseAsRoomDetails.errors?.joinToString(
-                "\n",
+                " ",
                 prefix = "\n"
             )?.trim()}"
         } else {
-            responseMessage += "$task success! ${responseAsRoomDetails.messages?.joinToString("\n", prefix = "\n")?.trim()}"
+            responseMessage += "$task success! ${responseAsRoomDetails.messages?.joinToString(" ", prefix = "\n")?.trim()}"
             updateGraphDetails(responseAsRoomDetails)
             setRoomIdForPreviousRoom(cardinalReference[moveWisely.direction], originalRoomId)
             SharedPrefs.saveState()
@@ -922,9 +922,9 @@ class MainActivity : AppCompatActivity() {
     private fun networkResponseSuccess(task: String, time: Double?, str: String, code: Int, errs: List<String>?, msgs: List<String>?) {
         var message: String = "Code $code: "
         message += if (errs?.isNotEmpty() == true) {
-            "$task failure! ${errs.joinToString("\n", prefix = "\n").trim()}"
+            "$task failure! ${errs.joinToString(" ", prefix = "\n").trim()}"
         } else {
-            "$task success! ${msgs?.joinToString("\n", prefix = "\n")?.trim()}"
+            "$task success! ${msgs?.joinToString(" ", prefix = "\n")?.trim()}"
         }
         cooldownAmount = time
         text_room_info.text = str

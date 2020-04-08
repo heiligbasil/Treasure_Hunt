@@ -13,19 +13,20 @@ import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.lambdaschool.cs_build_week_2.R
+import com.lambdaschool.cs_build_week_2.adapters.SelectionAdapter
 import kotlinx.android.parcel.Parcelize
-import kotlinx.android.synthetic.main.fragment_selection.view.*
+import kotlinx.android.synthetic.main.dialog_selection.view.*
 import java.util.*
 
 
-class SelectionFragment : DialogFragment() {
+class SelectionDialog : DialogFragment() {
 
     companion object {
         const val selectionTag = "item_list"
         const val colorTag = "tint_color"
         const val enumTag = "enum_selection"
     }
-    private var listener: OnListFragmentInteractionListener? = null
+    private var listener: OnSelectionDialogInteractionListener? = null
     private var listSelection: ArrayList<String> = arrayListOf()
     private var tintColor: Int = R.color.colorAmber
     private var enumSelection: Selections = Selections.NONE
@@ -47,9 +48,9 @@ class SelectionFragment : DialogFragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
-        val view: View = inflater.inflate(R.layout.fragment_selection, container, false)
+        val view: View = inflater.inflate(R.layout.dialog_selection, container, false)
         view.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(view.context, tintColor))
-        with(view.selection_fragment_recycler_view_container) {
+        with(view.dialog_selection_recycler_view_container) {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
             adapter = SelectionAdapter(listSelection)
             val dividerDecorator = DividerItemDecoration(context, RecyclerView.VERTICAL)
@@ -57,12 +58,12 @@ class SelectionFragment : DialogFragment() {
             addItemDecoration(dividerDecorator)
         }
 
-        view.selection_fragment_button_cancel.setOnClickListener {
+        view.dialog_selection_button_cancel.setOnClickListener {
             this.dismiss()
         }
-        view.selection_fragment_button_confirm.setOnClickListener {
-            val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = view.selection_fragment_recycler_view_container.adapter
-            listener?.onListFragmentInteraction((adapter as SelectionAdapter).getSelectedItem())
+        view.dialog_selection_button_confirm.setOnClickListener {
+            val adapter: RecyclerView.Adapter<RecyclerView.ViewHolder>? = view.dialog_selection_recycler_view_container.adapter
+            listener?.onSelectionDialogInteraction((adapter as SelectionAdapter).getSelectedItem())
         }
 
         return view
@@ -70,10 +71,10 @@ class SelectionFragment : DialogFragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        if (context is OnListFragmentInteractionListener) {
+        if (context is OnSelectionDialogInteractionListener) {
             listener = context
         } else {
-            throw RuntimeException("$context must implement OnListFragmentInteractionListener")
+            throw RuntimeException("$context must implement OnSelectionDialogInteractionListener")
         }
     }
 
@@ -82,8 +83,8 @@ class SelectionFragment : DialogFragment() {
         listener = null
     }
 
-    interface OnListFragmentInteractionListener {
-        fun onListFragmentInteraction(item: String)
+    interface OnSelectionDialogInteractionListener {
+        fun onSelectionDialogInteraction(item: String)
     }
 
 }

@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/fragment_selection_layout"
+    android:id="@+id/dialog_selection_layout"
     android:layout_width="match_parent"
     android:layout_height="300dp"
     android:background="@drawable/medieval"
@@ -13,7 +13,7 @@
     android:minHeight="250dp">
 
     <TextView
-        android:id="@+id/selection_fragment_text_view_heading"
+        android:id="@+id/dialog_selection_text_view_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="50dp"
@@ -26,8 +26,8 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/selection_fragment_recycler_view_container"
-        android:name="com.lambdaschool.cs_build_week_2.views.SelectionFragment"
+        android:id="@+id/dialog_selection_recycler_view_container"
+        android:name="com.lambdaschool.cs_build_week_2.views.SelectionDialog"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_marginStart="120dp"
@@ -36,15 +36,15 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:backgroundTint="@color/colorForest"
         app:layoutManager="LinearLayoutManager"
-        app:layout_constraintBottom_toTopOf="@id/selection_fragment_button_cancel"
+        app:layout_constraintBottom_toTopOf="@id/dialog_selection_button_cancel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/selection_fragment_text_view_heading"
-        tools:context=".views.SelectionFragment"
+        app:layout_constraintTop_toBottomOf="@id/dialog_selection_text_view_title"
+        tools:context=".views.SelectionDialog"
         tools:listitem="@layout/recycler_view_element" />
 
     <Button
-        android:id="@+id/selection_fragment_button_cancel"
+        android:id="@+id/dialog_selection_button_cancel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="120dp"
@@ -59,10 +59,10 @@
         android:textSize="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/selection_fragment_recycler_view_container" />
+        app:layout_constraintTop_toBottomOf="@id/dialog_selection_recycler_view_container" />
 
     <Button
-        android:id="@+id/selection_fragment_button_confirm"
+        android:id="@+id/dialog_selection_button_confirm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="120dp"
@@ -77,7 +77,7 @@
         android:textSize="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/selection_fragment_recycler_view_container" />
+        app:layout_constraintTop_toBottomOf="@id/dialog_selection_recycler_view_container" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guideline"

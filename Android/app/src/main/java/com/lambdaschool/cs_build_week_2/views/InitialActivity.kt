@@ -7,7 +7,7 @@ import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.synthetic.main.activity_initial.*
 
-class InitialActivity : AppCompatActivity(), SelectionFragment.OnListFragmentInteractionListener {
+class InitialActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInteractionListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,20 +25,20 @@ class InitialActivity : AppCompatActivity(), SelectionFragment.OnListFragmentInt
             }
         }
 
-        val selectionFragment: SelectionFragment = SelectionFragment()
+        val selectionDialog: SelectionDialog = SelectionDialog()
         val listBundle = Bundle()
         listBundle.putStringArrayList(
-            SelectionFragment.selectionTag,
+            SelectionDialog.selectionTag,
             arrayListOf("boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk","boots", "jacket", "treasure", "snitch", "coin", "map", "junk")
         )
-        listBundle.putInt(SelectionFragment.colorTag,R.color.colorForest)
-        listBundle.putParcelable(SelectionFragment.enumTag, SelectionFragment.Selections.TAKE)
-        selectionFragment.arguments = listBundle
-        selectionFragment.isCancelable = false
-        selectionFragment.show(supportFragmentManager, SelectionFragment.selectionTag)
+        listBundle.putInt(SelectionDialog.colorTag,R.color.colorForest)
+        listBundle.putParcelable(SelectionDialog.enumTag, SelectionDialog.Selections.TAKE)
+        selectionDialog.arguments = listBundle
+        selectionDialog.isCancelable = false
+        selectionDialog.show(supportFragmentManager, SelectionDialog.selectionTag)
     }
 
-    override fun onListFragmentInteraction(item: String) {
+    override fun onSelectionDialogInteraction(item: String) {
         return
     }
 }
