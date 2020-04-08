@@ -7,7 +7,7 @@ class Transaction {
     var previousHash: String? = null
     var cooldown: Double? = null
     var messages: List<String>? = null
-    var errors: List<Any>? = null
+    var errors: List<String>? = null
 
     /**
      * Returns a string representation of the object.

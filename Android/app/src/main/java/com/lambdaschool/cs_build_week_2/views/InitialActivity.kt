@@ -1,8 +1,6 @@
 package com.lambdaschool.cs_build_week_2.views
 
 import android.os.Bundle
-import android.view.Gravity
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
@@ -23,7 +21,7 @@ class InitialActivity : AppCompatActivity() {
                 finish()
                 overridePendingTransition(0, android.R.anim.fade_out)
             } else {
-                UserInteraction.inform(this,"Invalid token. Try again...")
+                UserInteraction.inform(this, "Invalid token. Try again...")
             }
         }
     }

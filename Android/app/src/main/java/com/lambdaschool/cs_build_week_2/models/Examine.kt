@@ -9,8 +9,8 @@ class Examine {
     var exp: Int? = null
     var attributes: String? = null
     var cooldown: Double? = null
-    var errors: List<Any>? = null
-    var messages: List<Any>? = null
+    var errors: List<String>? = null
+    var messages: List<String>? = null
 
     /**
      * Returns a string representation of the object.
