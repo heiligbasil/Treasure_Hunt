@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/dialog_input_layout"
+    android:layout_width="match_parent"
+    android:layout_height="300dp"
+    android:background="@drawable/celtic_side"
+    android:backgroundTint="@color/colorForest"
+    android:backgroundTintMode="src_atop"
+    android:minWidth="285dp"
+    android:minHeight="235dp">
+
+    <TextView
+        android:id="@+id/dialog_input_text_view_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="50dp"
+        android:fontFamily="cursive"
+        android:gravity="center"
+        android:text="Input the Text"
+        android:textSize="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <EditText
+        android:id="@+id/dialog_input_edit_text"
+        android:layout_width="150dp"
+        android:layout_height="wrap_content"
+        android:fontFamily="cursive"
+        android:textSize="16dp"
+        app:layout_constraintBottom_toTopOf="@id/dialog_input_button_cancel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialog_input_text_view_title" />
+
+    <Button
+        android:id="@+id/dialog_input_button_cancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="60dp"
+        android:layout_marginBottom="30dp"
+        android:alpha="0.8"
+        android:backgroundTint="@color/colorRubyFade"
+        android:fontFamily="cursive"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:text="Cancel"
+        android:textColor="@color/colorCloud"
+        android:textSize="12dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialog_input_edit_text" />
+
+    <Button
+        android:id="@+id/dialog_input_button_confirm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="60dp"
+        android:layout_marginBottom="30dp"
+        android:alpha="0.8"
+        android:backgroundTint="@color/colorForest"
+        android:fontFamily="cursive"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:text="Confirm"
+        android:textColor="@color/colorCloud"
+        android:textSize="12dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/dialog_input_edit_text" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
