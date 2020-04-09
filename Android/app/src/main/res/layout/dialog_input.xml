@@ -19,7 +19,7 @@
         android:fontFamily="cursive"
         android:gravity="center"
         android:text="Input the Text"
-        android:textSize="20dp"
+        android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -29,7 +29,9 @@
         android:layout_width="150dp"
         android:layout_height="wrap_content"
         android:fontFamily="cursive"
-        android:textSize="16dp"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:textSize="16sp"
         app:layout_constraintBottom_toTopOf="@id/dialog_input_button_cancel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -48,7 +50,7 @@
         android:minHeight="0dp"
         android:text="Cancel"
         android:textColor="@color/colorCloud"
-        android:textSize="12dp"
+        android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/dialog_input_edit_text" />
@@ -66,7 +68,7 @@
         android:minHeight="0dp"
         android:text="Confirm"
         android:textColor="@color/colorCloud"
-        android:textSize="12dp"
+        android:textSize="12sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/dialog_input_edit_text" />

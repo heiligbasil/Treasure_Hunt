@@ -8,14 +8,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.DialogFragment
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.parcel.Parcelize
 import kotlinx.android.synthetic.main.dialog_input.view.*
-import kotlinx.android.synthetic.main.dialog_input.view.dialog_input_button_confirm
 
 
 class InputDialog : DialogFragment() {
@@ -33,7 +31,7 @@ class InputDialog : DialogFragment() {
 
     @Parcelize
     enum class Inputs : Parcelable {
-        NONE, CHANGE_NAME
+        NONE, CHANGE_NAME, EXAMINE
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +64,7 @@ class InputDialog : DialogFragment() {
             val text: String = view.dialog_input_edit_text.text.toString()
             when (enumInput) {
                 Inputs.CHANGE_NAME -> listener?.onInputDialogInteractionChangeName(text)
+                Inputs.EXAMINE -> listener?.onInputDialogInteractionExamine(text)
                 else -> UserInteraction.inform(this.context ?: requireContext(), "Problem showing input dialog...")
             }
             this.dismiss()
@@ -89,6 +88,7 @@ class InputDialog : DialogFragment() {
 
     interface OnInputDialogInteractionListener {
         fun onInputDialogInteractionChangeName(text: String)
+        fun onInputDialogInteractionExamine(text: String)
     }
 
 }

@@ -185,10 +185,13 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             if (isInitDataDownloaded()) {
                 val currentRoomDetails: RoomDetails = getCurrentRoomDetails()
                 var whatToExamine: String = ""
+                var acceptCustomInput: Boolean = false
                 if (currentRoomDetails.title == "Wishing Well") {
                     whatToExamine = "Well"
+                    acceptCustomInput = true
                 } else if (currentRoomDetails.title == "Arron's Athenaeum") {
                     whatToExamine = "Book"
+                    acceptCustomInput = true
                 }
                 val combined: ArrayList<String> = arrayListOf()
                 if (whatToExamine.isNotEmpty()) {
@@ -201,7 +204,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
                 val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
                 combined.addAll(inventoryItems)
                 if (combined.isNotEmpty()) {
-                    showSelectionDialog(combined, R.color.colorForest, SelectionDialog.Selections.EXAMINE)
+                    showSelectionDialog(combined, R.color.colorForest, SelectionDialog.Selections.EXAMINE, acceptCustomInput)
                 } else {
                     UserInteraction.inform(this, "Nothing to Examine!")
                 }
@@ -260,24 +263,25 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         button_get_balance.setOnClickListener { networkGetBalance() }
     }
 
-    private fun showSelectionDialog(list: ArrayList<String>, color: Int, enum: SelectionDialog.Selections) {
+    private fun showSelectionDialog(list: ArrayList<String>, color: Int, enum: SelectionDialog.Selections, custom: Boolean = false) {
         val selectionDialog: SelectionDialog = SelectionDialog()
-        val listBundle = Bundle()
-        listBundle.putStringArrayList(SelectionDialog.selectionTag, list)
-        listBundle.putInt(SelectionDialog.colorTag, color)
-        listBundle.putParcelable(SelectionDialog.enumTag, enum)
-        selectionDialog.arguments = listBundle
+        val bundle = Bundle()
+        bundle.putStringArrayList(SelectionDialog.selectionTag, list)
+        bundle.putInt(SelectionDialog.colorTag, color)
+        bundle.putParcelable(SelectionDialog.enumTag, enum)
+        bundle.putBoolean(SelectionDialog.customTag, custom)
+        selectionDialog.arguments = bundle
         selectionDialog.isCancelable = false
         selectionDialog.show(supportFragmentManager, SelectionDialog.selectionTag)
     }
 
     private fun showInputDialog(text: String, color: Int, enum: InputDialog.Inputs) {
         val inputDialog: InputDialog = InputDialog()
-        val inputBundle = Bundle()
-        inputBundle.putString(InputDialog.textTag, text)
-        inputBundle.putInt(InputDialog.colorTag, color)
-        inputBundle.putParcelable(InputDialog.enumTag, enum)
-        inputDialog.arguments = inputBundle
+        val bundle = Bundle()
+        bundle.putString(InputDialog.textTag, text)
+        bundle.putInt(InputDialog.colorTag, color)
+        bundle.putParcelable(InputDialog.enumTag, enum)
+        inputDialog.arguments = bundle
         inputDialog.isCancelable = false
         inputDialog.show(supportFragmentManager, InputDialog.textTag)
     }
@@ -332,6 +336,10 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
 
     override fun onInputDialogInteractionChangeName(text: String) {
         networkPostChangeName(Treasure(text, "aye"))
+    }
+
+    override fun onInputDialogInteractionExamine(text: String) {
+        networkPostExamineShort(Treasure(text))
     }
 
     override fun onSelectionDialogInteractionDash(item: String) {
