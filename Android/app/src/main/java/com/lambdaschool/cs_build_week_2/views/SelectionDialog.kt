@@ -20,7 +20,7 @@ import kotlinx.android.synthetic.main.dialog_selection.view.*
 import java.util.*
 
 
-class SelectionDialog : DialogFragment() {
+class SelectionDialog : DialogFragment(), SelectionAdapter.OnRecyclerViewInteractionListener {
 
     companion object {
         const val selectionTag = "item_list"
@@ -40,6 +40,15 @@ class SelectionDialog : DialogFragment() {
         NONE, TAKE, DROP, BUY, SELL, WEAR, UNDRESS, EXAMINE, DASH, TRANSMOGRIFY, CARRY
     }
 
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnSelectionDialogInteractionListener) {
+            listener = context
+        } else {
+            throw RuntimeException("$context must implement OnSelectionDialogInteractionListener")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (arguments != null) {
@@ -57,7 +66,7 @@ class SelectionDialog : DialogFragment() {
         view.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(view.context, tintColor))
         with(view.dialog_selection_recycler_view_container) {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-            adapter = SelectionAdapter(listSelection)
+            adapter = SelectionAdapter(listSelection, this@SelectionDialog)
             val dividerDecorator = DividerItemDecoration(context, RecyclerView.VERTICAL)
             ContextCompat.getDrawable(context, R.drawable.divider)?.let { dividerDecorator.setDrawable(it) }
             addItemDecoration(dividerDecorator)
@@ -106,18 +115,16 @@ class SelectionDialog : DialogFragment() {
         return view
     }
 
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        if (context is OnSelectionDialogInteractionListener) {
-            listener = context
-        } else {
-            throw RuntimeException("$context must implement OnSelectionDialogInteractionListener")
-        }
-    }
-
     override fun onDetach() {
         super.onDetach()
         listener = null
+    }
+
+    override fun recyclerViewItemSelected() {
+        with(view?.dialog_selection_button_confirm) {
+            this?.isEnabled
+            this?.backgroundTintList = ContextCompat.getColorStateList(this@SelectionDialog.requireContext(), R.color.colorForest)
+        }
     }
 
     interface OnSelectionDialogInteractionListener {
