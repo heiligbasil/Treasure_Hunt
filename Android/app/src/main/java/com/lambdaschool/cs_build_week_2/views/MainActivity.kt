@@ -36,7 +36,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
     InputDialog.OnInputDialogInteractionListener {
 
     companion object {
-        var traversalTimer = Timer()
+        var traversalTimer: Timer? = null
         val timerHandlerSpecific = Handler()
         val timerHandlerUnexplored = Handler()
         var cooldownTimer: CountDownTimer? = null
@@ -100,8 +100,8 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-//            moveToUnexploredAutomated(pauseInSeconds = 10)
-            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 6)
+            moveToUnexploredAutomated(pauseInSeconds = 11)
+//            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 6)
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
@@ -1253,10 +1253,9 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             timerHandlerSpecific.post(myRunnableSpecific)
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
-    val myRunnableUnexplored = Runnable {
+    private val myRunnableUnexplored = Runnable {
         if (automatedPath.isNotEmpty()) {
-            var direction: String? = getDirectionForRoom(automatedPath.removeFirst())
+            var direction: String? = getDirectionForRoom(automatedPath.removeAt(0))
             if (direction == null) {
                 direction = getCurrentRoomDetails().exits?.random()
             }
@@ -1268,41 +1267,43 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             }
         } else {
             UserInteraction.inform(this, "There is nowhere to go...")
-            traversalTimer.cancel()
+            traversalTimer?.cancel()
+            traversalTimer = null
             return@Runnable
         }
         if (automatedPath.isEmpty()) {
-            traversalTimer.cancel()
-        }
-        if (automatedPath.isEmpty()) {
+            traversalTimer?.cancel()
+            traversalTimer = null
             moveToUnexploredAutomated()
         }
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
-    val myRunnableSpecific = Runnable {
-        /*if (automatedPath.isEmpty()) {
-            UserInteraction.inform(this, "I'm lost...")
-            traversalTimer.cancel()
-            return@Runnable
-        }*/
-        val destinationRoom: Int? = automatedPath.last()
-        val direction: String? = getDirectionForRoom(automatedPath.removeFirst())
-        if (direction == null) {
-            UserInteraction.askQuestion(
-                this, "Room Not Found", "Problem encountered traversing to room #$destinationRoom!", "Okay", null
-            )
-            traversalTimer.cancel()
-        } else {
-            when (direction) {
-                "n" -> button_move_north.performClick()
-                "s" -> button_move_south.performClick()
-                "e" -> button_move_east.performClick()
-                "w" -> button_move_west.performClick()
+    private val myRunnableSpecific = Runnable {
+        val destinationRoom: Int?
+        if (automatedPath.isNotEmpty()) {
+            destinationRoom = automatedPath.last()
+            val direction: String? = getDirectionForRoom(automatedPath.removeAt(0))
+            if (direction == null) {
+                UserInteraction.askQuestion(
+                    this, "Room Not Found", "Problem encountered traversing to room #$destinationRoom!", "Okay", null
+                )
+                traversalTimer?.cancel()
+            } else {
+                when (direction) {
+                    "n" -> button_move_north.performClick()
+                    "s" -> button_move_south.performClick()
+                    "e" -> button_move_east.performClick()
+                    "w" -> button_move_west.performClick()
+                }
             }
+        } else {
+            UserInteraction.inform(this, "I'm lost...")
+            traversalTimer?.cancel()
+            traversalTimer = null
+            return@Runnable
         }
         if (automatedPath.isEmpty()) {
-            traversalTimer.cancel()
+            traversalTimer?.cancel()
         }
         val exploredWisely: Boolean = getCurrentRoomDetails().messages?.last()?.contains("Wise") ?: false
         if ((destinationRoom == currentRoomId) || (destinationRoom == null && !exploredWisely)) {
@@ -1319,14 +1320,20 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
     }
 
     private fun moveToUnexploredAutomated(pauseInSeconds: Int = 16) {
-        if (!isInitDataDownloaded()) return
-        automatedPath = bfs(null)
-        traversalTimer = Timer()
-        traversalTimer.schedule(object : TimerTask() {
-            override fun run() {
-                runNextAutomatedStep(true)
-            }
-        }, pauseInSeconds * 1000L, pauseInSeconds * 1000L)
+        if (traversalTimer == null) {
+            if (!isInitDataDownloaded()) return
+            automatedPath = bfs(null)
+            traversalTimer = Timer()
+            traversalTimer?.schedule(object : TimerTask() {
+                override fun run() {
+                    runNextAutomatedStep(true)
+                }
+            }, pauseInSeconds * 1000L, pauseInSeconds * 1000L)
+        } else {
+            traversalTimer?.cancel()
+            traversalTimer = null
+            UserInteraction.inform(this, "'Traverse' option has been halted...")
+        }
     }
 
     private fun isInitDataDownloaded(): Boolean {
@@ -1358,19 +1365,25 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
     }
 
     private fun moveToSpecificRoomAutomated(roomId: Int?, pauseInSeconds: Int = 16) {
-        if (!isInitDataDownloaded()) {
-            return
-        } else if (roomId == currentRoomId) {
-            UserInteraction.askQuestion(this, "Room Is Here", "You are already at Room #${roomId}!", "Okay", null)
-            return
-        }
-        automatedPath = bfs(roomId)
-        traversalTimer = Timer()
-        traversalTimer.schedule(object : TimerTask() {
-            override fun run() {
-                runNextAutomatedStep(false)
+        if (traversalTimer == null) {
+            if (!isInitDataDownloaded()) {
+                return
+            } else if (roomId == currentRoomId) {
+                UserInteraction.askQuestion(this, "Room Is Here", "You are already at Room #${roomId}!", "Okay", null)
+                return
             }
-        }, 0, pauseInSeconds * 1000L)
+            automatedPath = bfs(roomId)
+            traversalTimer = Timer()
+            traversalTimer?.schedule(object : TimerTask() {
+                override fun run() {
+                    runNextAutomatedStep(false)
+                }
+            }, 0, pauseInSeconds * 1000L)
+        } else {
+            traversalTimer?.cancel()
+            traversalTimer = null
+            UserInteraction.inform(this, "'Traverse' command has been halted...")
+        }
     }
 
     private fun bfs(destinationRoom: Int?): ArrayList<Int?> {
