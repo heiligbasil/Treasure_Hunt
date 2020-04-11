@@ -147,6 +147,7 @@ class AdventureMapView @JvmOverloads constructor(
                             "JKMT Donuts" -> "#CC42A304"
                             "Red Egg Pizza Parlor" -> "#CC42A304"
                             "The Transmogriphier" -> "#CC42A304"
+                            "Snitch Board" -> "#9ABC880E"
                             "The Peak of Mt. Holloway" -> "#4D6200EA"
                             "Pirate Ry's" -> "#4D6200EA"
                             "Arron's Athenaeum" -> "#4D6200EA"
