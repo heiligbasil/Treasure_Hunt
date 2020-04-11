@@ -122,7 +122,7 @@ class SelectionDialog : DialogFragment(), SelectionAdapter.OnRecyclerViewInterac
 
     override fun recyclerViewItemSelected() {
         with(view?.dialog_selection_button_confirm) {
-            this?.isEnabled
+            this?.isEnabled = true
             this?.backgroundTintList = ContextCompat.getColorStateList(this@SelectionDialog.requireContext(), R.color.colorForest)
         }
     }
