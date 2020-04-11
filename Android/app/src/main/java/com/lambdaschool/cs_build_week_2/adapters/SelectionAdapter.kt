@@ -23,17 +23,10 @@ class SelectionAdapter(private val itemList: ArrayList<String>, listener: OnRecy
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
         val item: String = itemList[position]
         viewHolder.textViewItem.text = item
-
         if (selectedPosition == position) {
             viewHolder.textViewItem.setBackgroundColor(ContextCompat.getColor(viewHolder.view.context, R.color.colorForestFade))
         } else {
             viewHolder.textViewItem.setBackgroundColor(ContextCompat.getColor(viewHolder.view.context, R.color.colorCloudFade))
-        }
-        viewHolder.textViewItem.setOnClickListener {
-            viewHolder.orvil.recyclerViewItemSelected()
-            notifyItemChanged(selectedPosition)
-            selectedPosition = position
-            notifyItemChanged(selectedPosition)
         }
     }
 
@@ -52,6 +45,14 @@ class SelectionAdapter(private val itemList: ArrayList<String>, listener: OnRecy
     inner class ViewHolder(val view: View, listener: OnRecyclerViewInteractionListener) : RecyclerView.ViewHolder(view) {
         val textViewItem: TextView = view.recycler_view_element_text_view_item
         val orvil: OnRecyclerViewInteractionListener = listener
+        init {
+            view.setOnClickListener {
+                notifyItemChanged(selectedPosition)
+                selectedPosition = layoutPosition
+                notifyItemChanged(selectedPosition)
+                orvil.recyclerViewItemSelected()
+            }
+        }
     }
 
     interface OnRecyclerViewInteractionListener {
