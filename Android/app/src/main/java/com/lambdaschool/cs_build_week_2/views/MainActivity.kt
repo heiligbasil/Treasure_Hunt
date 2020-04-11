@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         var responseRoomInfo: String = ""
         var inventoryStatus: Status = Status()
         var examineShort: ExamineShort = ExamineShort()
-        var traverseToRoom: Int = 309
+        var traverseToRoom: Int = 0
         var mine: Mine = Mine(-1)
         var proof: Proof = Proof()
         const val baseUrl = "https://lambda-treasure-hunt.herokuapp.com/api/"
@@ -182,7 +182,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             }
         }
         button_examine.setOnClickListener {
-            if (isInitDataDownloaded()) {
+            if (isInitAndStatusDataDownloaded()) {
                 val currentRoomDetails: RoomDetails = getCurrentRoomDetails()
                 var whatToExamine: String = ""
                 var acceptCustomInput: Boolean = false
@@ -376,7 +376,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
         inventoryItems.remove(item)
         inventoryStatus.inventory = inventoryItems
-        networkPostTransmogrify(Treasure(item));
+        networkPostTransmogrify(Treasure(item))
     }
 
     override fun onSelectionDialogInteractionCarry(item: String) {
@@ -1343,6 +1343,10 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             return false
         }
         return true
+    }
+
+    private fun isInitAndStatusDataDownloaded(): Boolean {
+        return isInitDataDownloaded() && isStatusDataDownloaded()
     }
 
     private fun isProofDataDownloaded(): Boolean {
