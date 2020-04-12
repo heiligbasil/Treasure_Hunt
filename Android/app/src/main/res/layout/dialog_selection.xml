@@ -41,7 +41,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/dialog_selection_text_view_title"
         tools:context=".views.SelectionDialog"
-        tools:listitem="@layout/recycler_view_element" />
+        tools:listitem="@layout/dialog_selection_element" />
 
     <Button
         android:id="@+id/dialog_selection_button_custom"
