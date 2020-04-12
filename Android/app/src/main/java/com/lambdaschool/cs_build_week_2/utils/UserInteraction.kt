@@ -6,8 +6,14 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 
 object UserInteraction {
-    fun askQuestion(context: Context, title: String, message: String, positiveButton: String, negativeButton: String?): Boolean {
-        var result: Boolean = false
+    fun askQuestion(
+        context: Context,
+        title: String,
+        message: String,
+        positiveButton: String,
+        negativeButton: String?,
+        listener: OnPositiveButtonListener? = null
+    ) {
         AlertDialog.Builder(context, android.R.style.Theme_Material_Dialog_Alert)
             .setTitle(title)
             .setCancelable(false)
@@ -15,17 +21,17 @@ object UserInteraction {
             .setMessage(message)
             .setPositiveButton(positiveButton) { dialog, _ ->
                 dialog.cancel()
-                result = true
+                listener?.positiveButtonClickedCallback()
             }
-            .setNegativeButton(negativeButton) { dialog, _ ->
-                dialog.cancel()
-                result = false
-            }
+            .setNegativeButton(negativeButton) { dialog, _ -> dialog.cancel() }
             .show()
-        return result
     }
 
-    fun inform(context: Context,message: String) {
+    interface OnPositiveButtonListener {
+        fun positiveButtonClickedCallback()
+    }
+
+    fun inform(context: Context, message: String) {
         val toast: Toast = Toast.makeText(context, message, Toast.LENGTH_LONG)
         toast.setGravity(Gravity.CENTER, 0, 0)
         toast.show()

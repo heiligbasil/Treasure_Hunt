@@ -32,10 +32,11 @@ import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 
 
-class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInteractionListener {
+class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInteractionListener,
+    InputDialog.OnInputDialogInteractionListener {
 
     companion object {
-        var traversalTimer = Timer()
+        var traversalTimer: Timer? = null
         val timerHandlerSpecific = Handler()
         val timerHandlerUnexplored = Handler()
         var cooldownTimer: CountDownTimer? = null
@@ -46,7 +47,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         var responseRoomInfo: String = ""
         var inventoryStatus: Status = Status()
         var examineShort: ExamineShort = ExamineShort()
-        var traverseToRoom: Int = 309
+        var traverseToRoom: Int = 0
         var mine: Mine = Mine(-1)
         var proof: Proof = Proof()
         const val baseUrl = "https://lambda-treasure-hunt.herokuapp.com/api/"
@@ -99,8 +100,8 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-//            moveToUnexploredAutomated(pauseInSeconds = 10)
-            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 6)
+            moveToUnexploredAutomated(pauseInSeconds = 11)
+//            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 6)
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
@@ -181,13 +182,16 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             }
         }
         button_examine.setOnClickListener {
-            if (isInitDataDownloaded()) {
+            if (isInitAndStatusDataDownloaded()) {
                 val currentRoomDetails: RoomDetails = getCurrentRoomDetails()
                 var whatToExamine: String = ""
+                var acceptCustomInput: Boolean = false
                 if (currentRoomDetails.title == "Wishing Well") {
                     whatToExamine = "Well"
+                    acceptCustomInput = true
                 } else if (currentRoomDetails.title == "Arron's Athenaeum") {
                     whatToExamine = "Book"
+                    acceptCustomInput = true
                 }
                 val combined: ArrayList<String> = arrayListOf()
                 if (whatToExamine.isNotEmpty()) {
@@ -200,15 +204,14 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
                 val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
                 combined.addAll(inventoryItems)
                 if (combined.isNotEmpty()) {
-                    showSelectionDialog(combined, R.color.colorForest, SelectionDialog.Selections.EXAMINE)
+                    showSelectionDialog(combined, R.color.colorForest, SelectionDialog.Selections.EXAMINE, acceptCustomInput)
                 } else {
                     UserInteraction.inform(this, "Nothing to Examine!")
                 }
             }
         }
         button_change_name.setOnClickListener {
-            //TODO: Allow for a custom input
-            networkPostChangeName(Treasure("Basil der Grosse", "aye"))
+            showInputDialog("Basil der Grosse", R.color.colorCupid, InputDialog.Inputs.CHANGE_NAME)
         }
         button_pray.setOnClickListener {
             networkPostPray()
@@ -260,15 +263,27 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         button_get_balance.setOnClickListener { networkGetBalance() }
     }
 
-    private fun showSelectionDialog(list: ArrayList<String>, color: Int, enum: SelectionDialog.Selections) {
+    private fun showSelectionDialog(list: ArrayList<String>, color: Int, enum: SelectionDialog.Selections, custom: Boolean = false) {
         val selectionDialog: SelectionDialog = SelectionDialog()
-        val listBundle = Bundle()
-        listBundle.putStringArrayList(SelectionDialog.selectionTag, list)
-        listBundle.putInt(SelectionDialog.colorTag, color)
-        listBundle.putParcelable(SelectionDialog.enumTag, enum)
-        selectionDialog.arguments = listBundle
+        val bundle = Bundle()
+        bundle.putStringArrayList(SelectionDialog.selectionTag, list)
+        bundle.putInt(SelectionDialog.colorTag, color)
+        bundle.putParcelable(SelectionDialog.enumTag, enum)
+        bundle.putBoolean(SelectionDialog.customTag, custom)
+        selectionDialog.arguments = bundle
         selectionDialog.isCancelable = false
         selectionDialog.show(supportFragmentManager, SelectionDialog.selectionTag)
+    }
+
+    private fun showInputDialog(text: String, color: Int, enum: InputDialog.Inputs) {
+        val inputDialog: InputDialog = InputDialog()
+        val bundle = Bundle()
+        bundle.putString(InputDialog.textTag, text)
+        bundle.putInt(InputDialog.colorTag, color)
+        bundle.putParcelable(InputDialog.enumTag, enum)
+        inputDialog.arguments = bundle
+        inputDialog.isCancelable = false
+        inputDialog.show(supportFragmentManager, InputDialog.textTag)
     }
 
     override fun onSelectionDialogInteractionTake(item: String) {
@@ -319,6 +334,14 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         }
     }
 
+    override fun onInputDialogInteractionChangeName(text: String) {
+        networkPostChangeName(Treasure(text, "aye"))
+    }
+
+    override fun onInputDialogInteractionExamine(text: String) {
+        networkPostExamineShort(Treasure(text))
+    }
+
     override fun onSelectionDialogInteractionDash(item: String) {
         val directionAndPath: HashMap<String, ArrayList<Int?>> =
             hashMapOf(Pair("n", arrayListOf()), Pair("s", arrayListOf()), Pair("e", arrayListOf()), Pair("w", arrayListOf()))
@@ -353,7 +376,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         val inventoryItems: ArrayList<String> = inventoryStatus.inventory?.toCollection(ArrayList()) ?: arrayListOf()
         inventoryItems.remove(item)
         inventoryStatus.inventory = inventoryItems
-        networkPostTransmogrify(Treasure(item));
+        networkPostTransmogrify(Treasure(item))
     }
 
     override fun onSelectionDialogInteractionCarry(item: String) {
@@ -392,7 +415,6 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             }
         })
     }
-
 
     private fun networkPostMove(moveWisely: MoveWisely) {
         val retrofit: Retrofit = retrofitPostBuilder()
@@ -1231,10 +1253,9 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             timerHandlerSpecific.post(myRunnableSpecific)
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
-    val myRunnableUnexplored = Runnable {
+    private val myRunnableUnexplored = Runnable {
         if (automatedPath.isNotEmpty()) {
-            var direction: String? = getDirectionForRoom(automatedPath.removeFirst())
+            var direction: String? = getDirectionForRoom(automatedPath.removeAt(0))
             if (direction == null) {
                 direction = getCurrentRoomDetails().exits?.random()
             }
@@ -1246,41 +1267,43 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             }
         } else {
             UserInteraction.inform(this, "There is nowhere to go...")
-            traversalTimer.cancel()
+            traversalTimer?.cancel()
+            traversalTimer = null
             return@Runnable
         }
         if (automatedPath.isEmpty()) {
-            traversalTimer.cancel()
-        }
-        if (automatedPath.isEmpty()) {
+            traversalTimer?.cancel()
+            traversalTimer = null
             moveToUnexploredAutomated()
         }
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
-    val myRunnableSpecific = Runnable {
-        /*if (automatedPath.isEmpty()) {
-            UserInteraction.inform(this, "I'm lost...")
-            traversalTimer.cancel()
-            return@Runnable
-        }*/
-        val destinationRoom: Int? = automatedPath.last()
-        val direction: String? = getDirectionForRoom(automatedPath.removeFirst())
-        if (direction == null) {
-            UserInteraction.askQuestion(
-                this, "Room Not Found", "Problem encountered traversing to room #$destinationRoom!", "Okay", null
-            )
-            traversalTimer.cancel()
-        } else {
-            when (direction) {
-                "n" -> button_move_north.performClick()
-                "s" -> button_move_south.performClick()
-                "e" -> button_move_east.performClick()
-                "w" -> button_move_west.performClick()
+    private val myRunnableSpecific = Runnable {
+        val destinationRoom: Int?
+        if (automatedPath.isNotEmpty()) {
+            destinationRoom = automatedPath.last()
+            val direction: String? = getDirectionForRoom(automatedPath.removeAt(0))
+            if (direction == null) {
+                UserInteraction.askQuestion(
+                    this, "Room Not Found", "Problem encountered traversing to room #$destinationRoom!", "Okay", null
+                )
+                traversalTimer?.cancel()
+            } else {
+                when (direction) {
+                    "n" -> button_move_north.performClick()
+                    "s" -> button_move_south.performClick()
+                    "e" -> button_move_east.performClick()
+                    "w" -> button_move_west.performClick()
+                }
             }
+        } else {
+            UserInteraction.inform(this, "I'm lost...")
+            traversalTimer?.cancel()
+            traversalTimer = null
+            return@Runnable
         }
         if (automatedPath.isEmpty()) {
-            traversalTimer.cancel()
+            traversalTimer?.cancel()
         }
         val exploredWisely: Boolean = getCurrentRoomDetails().messages?.last()?.contains("Wise") ?: false
         if ((destinationRoom == currentRoomId) || (destinationRoom == null && !exploredWisely)) {
@@ -1297,14 +1320,20 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
     }
 
     private fun moveToUnexploredAutomated(pauseInSeconds: Int = 16) {
-        if (!isInitDataDownloaded()) return
-        automatedPath = bfs(null)
-        traversalTimer = Timer()
-        traversalTimer.schedule(object : TimerTask() {
-            override fun run() {
-                runNextAutomatedStep(true)
-            }
-        }, pauseInSeconds * 1000L, pauseInSeconds * 1000L)
+        if (traversalTimer == null) {
+            if (!isInitDataDownloaded()) return
+            automatedPath = bfs(null)
+            traversalTimer = Timer()
+            traversalTimer?.schedule(object : TimerTask() {
+                override fun run() {
+                    runNextAutomatedStep(true)
+                }
+            }, pauseInSeconds * 1000L, pauseInSeconds * 1000L)
+        } else {
+            traversalTimer?.cancel()
+            traversalTimer = null
+            UserInteraction.inform(this, "'Traverse' option has been halted...")
+        }
     }
 
     private fun isInitDataDownloaded(): Boolean {
@@ -1323,6 +1352,10 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         return true
     }
 
+    private fun isInitAndStatusDataDownloaded(): Boolean {
+        return isInitDataDownloaded() && isStatusDataDownloaded()
+    }
+
     private fun isProofDataDownloaded(): Boolean {
         if (proof.proof == null) {
             UserInteraction.inform(this, "Please do a GET 'Last proof' first...")
@@ -1332,19 +1365,25 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
     }
 
     private fun moveToSpecificRoomAutomated(roomId: Int?, pauseInSeconds: Int = 16) {
-        if (!isInitDataDownloaded()) {
-            return
-        } else if (roomId == currentRoomId) {
-            UserInteraction.askQuestion(this, "Room Is Here", "You are already at Room #${roomId}!", "Okay", null)
-            return
-        }
-        automatedPath = bfs(roomId)
-        traversalTimer = Timer()
-        traversalTimer.schedule(object : TimerTask() {
-            override fun run() {
-                runNextAutomatedStep(false)
+        if (traversalTimer == null) {
+            if (!isInitDataDownloaded()) {
+                return
+            } else if (roomId == currentRoomId) {
+                UserInteraction.askQuestion(this, "Room Is Here", "You are already at Room #${roomId}!", "Okay", null)
+                return
             }
-        }, 0, pauseInSeconds * 1000L)
+            automatedPath = bfs(roomId)
+            traversalTimer = Timer()
+            traversalTimer?.schedule(object : TimerTask() {
+                override fun run() {
+                    runNextAutomatedStep(false)
+                }
+            }, 0, pauseInSeconds * 1000L)
+        } else {
+            traversalTimer?.cancel()
+            traversalTimer = null
+            UserInteraction.inform(this, "'Traverse' command has been halted...")
+        }
     }
 
     private fun bfs(destinationRoom: Int?): ArrayList<Int?> {

@@ -545,7 +545,7 @@
         android:id="@+id/view_map"
         android:layout_width="match_parent"
         android:layout_height="475dp"
-        android:background="@drawable/celtic_frame"
+        android:background="@drawable/celtic"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

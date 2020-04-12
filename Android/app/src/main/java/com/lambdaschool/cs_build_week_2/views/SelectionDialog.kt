@@ -20,30 +20,42 @@ import kotlinx.android.synthetic.main.dialog_selection.view.*
 import java.util.*
 
 
-class SelectionDialog : DialogFragment() {
+class SelectionDialog : DialogFragment(), SelectionAdapter.OnRecyclerViewInteractionListener {
 
     companion object {
         const val selectionTag = "item_list"
         const val colorTag = "tint_color"
         const val enumTag = "enum_selection"
+        const val customTag = "bool_custom"
     }
 
     private var listener: OnSelectionDialogInteractionListener? = null
     private var listSelection: ArrayList<String> = arrayListOf()
     private var tintColor: Int = R.color.colorAmber
     private var enumSelection: Selections = Selections.NONE
+    private var boolCustom: Boolean = false
 
     @Parcelize
     enum class Selections : Parcelable {
         NONE, TAKE, DROP, BUY, SELL, WEAR, UNDRESS, EXAMINE, DASH, TRANSMOGRIFY, CARRY
     }
 
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        if (context is OnSelectionDialogInteractionListener) {
+            listener = context
+        } else {
+            throw RuntimeException("$context must implement OnSelectionDialogInteractionListener")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (arguments != null) {
-            listSelection = arguments?.getStringArrayList(Companion.selectionTag) ?: arrayListOf()
+            listSelection = arguments?.getStringArrayList(Companion.selectionTag) ?: listSelection
             tintColor = arguments?.getInt(Companion.colorTag) ?: tintColor
-            enumSelection = arguments?.getParcelable(Companion.enumTag) ?: Selections.NONE
+            enumSelection = arguments?.getParcelable(Companion.enumTag) ?: enumSelection
+            boolCustom = arguments?.getBoolean(customTag) ?: boolCustom
         }
     }
 
@@ -54,17 +66,37 @@ class SelectionDialog : DialogFragment() {
         view.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(view.context, tintColor))
         with(view.dialog_selection_recycler_view_container) {
             layoutManager = LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false)
-            adapter = SelectionAdapter(listSelection)
+            adapter = SelectionAdapter(listSelection, this@SelectionDialog)
             val dividerDecorator = DividerItemDecoration(context, RecyclerView.VERTICAL)
             ContextCompat.getDrawable(context, R.drawable.divider)?.let { dividerDecorator.setDrawable(it) }
             addItemDecoration(dividerDecorator)
         }
-
+        if (boolCustom) {
+            view.dialog_selection_button_custom.visibility = View.VISIBLE
+            view.dialog_selection_button_custom.setOnClickListener {
+                val enum: InputDialog.Inputs = if (enumSelection == Selections.EXAMINE) {
+                    InputDialog.Inputs.EXAMINE
+                } else {
+                    InputDialog.Inputs.NONE
+                }
+                val inputDialog: InputDialog = InputDialog()
+                val inputBundle = Bundle()
+                inputBundle.putString(InputDialog.textTag, "")
+                inputBundle.putInt(InputDialog.colorTag, tintColor)
+                inputBundle.putParcelable(InputDialog.enumTag, enum)
+                inputDialog.arguments = inputBundle
+                inputDialog.isCancelable = false
+                inputDialog.show(this.requireFragmentManager(), InputDialog.textTag)
+                this.dismiss()
+            }
+        } else {
+            view.dialog_selection_button_custom.visibility = View.GONE
+        }
         view.dialog_selection_button_cancel.setOnClickListener {
             this.dismiss()
         }
         view.dialog_selection_button_confirm.setOnClickListener {
-            val adapter = view.dialog_selection_recycler_view_container.adapter as SelectionAdapter
+            val adapter: SelectionAdapter = view.dialog_selection_recycler_view_container.adapter as SelectionAdapter
             when (enumSelection) {
                 Selections.TAKE -> listener?.onSelectionDialogInteractionTake(adapter.getSelectedItem())
                 Selections.DROP -> listener?.onSelectionDialogInteractionDrop(adapter.getSelectedItem())
@@ -83,18 +115,16 @@ class SelectionDialog : DialogFragment() {
         return view
     }
 
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        if (context is OnSelectionDialogInteractionListener) {
-            listener = context
-        } else {
-            throw RuntimeException("$context must implement OnSelectionDialogInteractionListener")
-        }
-    }
-
     override fun onDetach() {
         super.onDetach()
         listener = null
+    }
+
+    override fun recyclerViewItemSelected() {
+        with(view?.dialog_selection_button_confirm) {
+            this?.isEnabled = true
+            this?.backgroundTintList = ContextCompat.getColorStateList(this@SelectionDialog.requireContext(), R.color.colorForest)
+        }
     }
 
     interface OnSelectionDialogInteractionListener {
@@ -109,5 +139,4 @@ class SelectionDialog : DialogFragment() {
         fun onSelectionDialogInteractionTransmogrify(item: String)
         fun onSelectionDialogInteractionCarry(item: String)
     }
-
 }

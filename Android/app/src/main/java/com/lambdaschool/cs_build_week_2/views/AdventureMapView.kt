@@ -21,7 +21,7 @@ class AdventureMapView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
     defStyleRes: Int = 0
-) : View(context, attrs, defStyleAttr, defStyleRes) {
+) : View(context, attrs, defStyleAttr, defStyleRes), UserInteraction.OnPositiveButtonListener {
 
     private var cellsGrid: Array<Array<Int>> = Array(1) { Array(1) { -1 } }
     private var calculated = false
@@ -29,6 +29,7 @@ class AdventureMapView @JvmOverloads constructor(
     private var shiftYGridBy: Int = 3
     private var cellWidth = 0
     private var cellHeight = 0
+    private var selectedCell: Int = MainActivity.traverseToRoom
 
     private val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
@@ -146,6 +147,7 @@ class AdventureMapView @JvmOverloads constructor(
                             "JKMT Donuts" -> "#CC42A304"
                             "Red Egg Pizza Parlor" -> "#CC42A304"
                             "The Transmogriphier" -> "#CC42A304"
+                            "Snitch Board" -> "#9ABC880E"
                             "The Peak of Mt. Holloway" -> "#4D6200EA"
                             "Pirate Ry's" -> "#4D6200EA"
                             "Arron's Athenaeum" -> "#4D6200EA"
@@ -250,7 +252,7 @@ class AdventureMapView @JvmOverloads constructor(
         if (event.action == MotionEvent.ACTION_DOWN) {
             val column = (event.y / cellWidth).toInt() - 3
             val row = (event.x / cellHeight).toInt() + 47
-            val selectedCell: Int = cellsGrid[column][row]
+            selectedCell = cellsGrid[column][row]
             /*coords="($row,$column) $selectedCell"*/
             if (selectedCell > -1) {
                 val roomDetails: RoomDetails = if (inDarkWorld) {
@@ -258,8 +260,7 @@ class AdventureMapView @JvmOverloads constructor(
                 } else {
                     (roomsGraph[selectedCell]?.get(0) as RoomDetails)
                 }
-                UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Confirm", null)
-                MainActivity.traverseToRoom = selectedCell
+                UserInteraction.askQuestion(context, "Room #$selectedCell", roomDetails.toString(), "Confirm", "Cancel", this)
             }
             performClick()
             invalidate()
@@ -278,5 +279,9 @@ class AdventureMapView @JvmOverloads constructor(
      */
     override fun performClick(): Boolean {
         return super.performClick()
+    }
+
+    override fun positiveButtonClickedCallback() {
+        MainActivity.traverseToRoom = selectedCell
     }
 }
