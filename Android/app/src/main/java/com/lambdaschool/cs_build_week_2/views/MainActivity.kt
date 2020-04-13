@@ -11,6 +11,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.*
+import com.lambdaschool.cs_build_week_2.dialogs.CombinedDialog
 import com.lambdaschool.cs_build_week_2.models.*
 import com.lambdaschool.cs_build_week_2.utils.Mining
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
@@ -34,7 +35,7 @@ import kotlin.collections.HashMap
 
 
 class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInteractionListener,
-    InputDialog.OnInputDialogInteractionListener {
+    InputDialog.OnInputDialogInteractionListener, CombinedDialog.OnCombinedDialogInteractionListener {
 
     companion object {
         var automationJob: Job = Job()
@@ -103,8 +104,10 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-            automatedTraversal()
-//            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 6)
+            if (isInitDataDownloaded()) {
+                val traversalList = arrayListOf("Search Unexplored", "Search Room: $traverseToRoom")
+                showCombinedDialog(traversalList, "Select the Traversal Type", R.color.colorRubyFade)
+            }
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
@@ -287,6 +290,17 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         inputDialog.arguments = bundle
         inputDialog.isCancelable = false
         inputDialog.show(supportFragmentManager, InputDialog.textTag)
+    }
+
+    private fun showCombinedDialog(list: ArrayList<String>, title: String, color: Int) {
+        val dialog: CombinedDialog = CombinedDialog()
+        val bundle: Bundle = Bundle()
+        bundle.putStringArrayList(CombinedDialog.listTag, list)
+        bundle.putString(CombinedDialog.titleTag, title)
+        bundle.putInt(CombinedDialog.colorTag, color)
+        dialog.arguments = bundle
+        dialog.isCancelable = false
+        dialog.show(supportFragmentManager, CombinedDialog.listTag)
     }
 
     override fun onSelectionDialogInteractionTake(item: String) {
@@ -1261,6 +1275,7 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         if (!isInitDataDownloaded()) {
             return
         }
+
         if (automationJob.isActive) {
             CoroutineScope(Dispatchers.IO).launch {
                 automationJob.cancelAndJoin()
@@ -1300,6 +1315,10 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
                 delay(cooldownAmount?.times(1000L)?.toLong() ?: 1000L)
             }
         }
+    }
+
+    override fun onCombinedDialogInteractionAutomation(roomId: Int?) {
+        TODO("Not yet implemented")
     }
 
     /*private val myRunnableSpecific = Runnable {
