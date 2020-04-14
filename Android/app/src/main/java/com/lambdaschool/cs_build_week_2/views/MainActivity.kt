@@ -105,7 +105,11 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
             if (isInitDataDownloaded()) {
-                val traversalList = arrayListOf("Search Unexplored", "Search Room: $traverseToRoom")
+                val traversalOptions: ArrayList<String> = arrayListOf("Search Unexplored", "Search Room: $traverseToRoom")
+                if (automationJob.isActive) {
+                    traversalOptions.add(0, "Halt Traversal")
+                }
+                val traversalList = traversalOptions
                 showCombinedDialog(traversalList, "Select the Traversal Type", R.color.colorRubyFade)
             }
         }
@@ -1271,11 +1275,13 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         }
     }
 
-    private fun automatedTraversal() {
+    private fun automatedTraversal(destinationRoomId: Int? = null) {
         if (!isInitDataDownloaded()) {
             return
+        } else if (destinationRoomId == currentRoomId) {
+            UserInteraction.askQuestion(this, "Current Room", "You are already at Room #$destinationRoomId!", "Okay", null)
+            return
         }
-
         if (automationJob.isActive) {
             CoroutineScope(Dispatchers.IO).launch {
                 automationJob.cancelAndJoin()
@@ -1284,17 +1290,26 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         } else {
             automationJob = CoroutineScope(Dispatchers.IO).launch {
                 while (isActive) {
-                    automatedTraversalWork()
+                    automatedTraversalWork(destinationRoomId)
                 }
             }
         }
     }
 
-    private suspend fun automatedTraversalWork() {
-        automatedPath = bfs(null)
+    private suspend fun automatedTraversalWork(destinationRoomId: Int? = null) {
+        automatedPath = bfs(destinationRoomId)
         if (automatedPath.isEmpty()) {
+            var unknownConditionMessage: String = ""
+            var unknownConditionTitle: String = ""
+            if (destinationRoomId != null) {
+                unknownConditionMessage = "Unknown snafu traversing to room #$destinationRoomId!"
+                unknownConditionTitle = "Room Not Found"
+            } else {
+                unknownConditionMessage = "Cannot 'Traverse' - there is nowhere to go..."
+                unknownConditionTitle = "Traversal Halted"
+            }
             withContext(Dispatchers.Main) {
-                UserInteraction.inform(applicationContext, "Cannot 'Traverse'... There is nowhere to go.")
+                UserInteraction.askQuestion(this@MainActivity, unknownConditionTitle, unknownConditionMessage, "Okay", null)
                 this.cancel()
             }
         } else {
@@ -1312,69 +1327,24 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
                         else -> UserInteraction.inform(applicationContext, "Direction '$direction' couldn't be found...")
                     }
                 }
+                if (destinationRoomId != null) {
+                    val exploredWisely: Boolean = getCurrentRoomDetails().messages?.last()?.contains("wise", true) ?: false
+                    if ((destinationRoomId == currentRoomId) || !exploredWisely) {
+                        val foundMessage: String = "Room #$destinationRoomId has been found!"
+                        withContext(Dispatchers.Main) {
+                            UserInteraction.askQuestion(this@MainActivity, "Room Found", foundMessage, "Okay", null)
+                            this.cancel()
+                        }
+                    }
+                }
                 delay(cooldownAmount?.times(1000L)?.toLong() ?: 1000L)
             }
         }
     }
 
-    override fun onCombinedDialogInteractionAutomation(roomId: Int?) {
-        TODO("Not yet implemented")
+    override fun onCombinedDialogInteractionAutomation(destinationRoomId: Int?) {
+        automatedTraversal(destinationRoomId)
     }
-
-    /*private val myRunnableSpecific = Runnable {
-        val destinationRoom: Int?
-        if (automatedPath.isNotEmpty()) {
-            destinationRoom = automatedPath.last()
-            val direction: String? = getDirectionForRoom(automatedPath.removeAt(0))
-            if (direction == null) {
-                UserInteraction.askQuestion(
-                    this, "Room Not Found", "Problem encountered traversing to room #$destinationRoom!", "Okay", null
-                )
-                traversalTimer?.cancel()
-            } else {
-                when (direction) {
-                    "n" -> button_move_north.performClick()
-                    "s" -> button_move_south.performClick()
-                    "e" -> button_move_east.performClick()
-                    "w" -> button_move_west.performClick()
-                }
-            }
-        } else {
-            UserInteraction.inform(this, "I'm lost...")
-            traversalTimer?.cancel()
-            traversalTimer = null
-            return@Runnable
-        }
-        if (automatedPath.isEmpty()) {
-            traversalTimer?.cancel()
-        }
-        val exploredWisely: Boolean = getCurrentRoomDetails().messages?.last()?.contains("Wise") ?: false
-        if ((destinationRoom == currentRoomId) || (destinationRoom == null && !exploredWisely)) {
-            UserInteraction.askQuestion(this, "Room Found", "Room #$destinationRoom has been found!", "Okay", null)
-        }
-    }*/
-
-    /*private fun moveToSpecificRoomAutomated(roomId: Int?, pauseInSeconds: Int = 16) {
-        if (traversalTimer == null) {
-            if (!isInitDataDownloaded()) {
-                return
-            } else if (roomId == currentRoomId) {
-                UserInteraction.askQuestion(this, "Room Is Here", "You are already at Room #${roomId}!", "Okay", null)
-                return
-            }
-            automatedPath = bfs(roomId)
-            traversalTimer = Timer()
-            traversalTimer?.schedule(object : TimerTask() {
-                override fun run() {
-                    runNextAutomatedStep(false)
-                }
-            }, 0, pauseInSeconds * 1000L)
-        } else {
-            traversalTimer?.cancel()
-            traversalTimer = null
-            UserInteraction.inform(this, "'Traverse' command has been halted...")
-        }
-    }*/
 
     private fun isInitDataDownloaded(): Boolean {
         if ((inDarkWorld && darkGraph.isEmpty()) || (!inDarkWorld && roomsGraph.isEmpty()) || (currentRoomId == -1)) {
