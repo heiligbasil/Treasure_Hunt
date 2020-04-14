@@ -73,7 +73,7 @@ class CombinedDialog : DialogFragment(), CombinedAdapter.OnRecyclerViewInteracti
             val viewHolder =
                 view.dialog_combined_recycler_view_container.findViewHolderForAdapterPosition(selectedPosition) as CombinedAdapter.ViewHolder
             var number: Int? = null
-            if (viewHolder.editText.visibility == View.VISIBLE) {
+            if (viewHolder.editFrame.visibility == View.VISIBLE) {
                 number = viewHolder.editText.text.toString().toInt()
             }
             listener?.onCombinedDialogInteractionAutomation(number)
@@ -95,6 +95,6 @@ class CombinedDialog : DialogFragment(), CombinedAdapter.OnRecyclerViewInteracti
     }
 
     interface OnCombinedDialogInteractionListener {
-        fun onCombinedDialogInteractionAutomation(roomId: Int? = null)
+        fun onCombinedDialogInteractionAutomation(destinationRoomId: Int? = null)
     }
 }
