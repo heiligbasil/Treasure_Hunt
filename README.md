@@ -2,7 +2,7 @@
 What brave adventurer musters the moxy to traverse the labyrinth!
 
 ## Description
-Progress from darkness into the light and then back to the dark (world). Frontend app for the Lambda multiuser dungeon (MUD). Gain abilities through blockchain mining, 8-bit computer programming, and utilizing breadth-first searching (BFS).
+Progress from darkness into the light and then back to the dark...world. Frontend app for the Lambda multiuser dungeon (MUD). Gain abilities through blockchain mining, 8-bit computer programming, and utilizing breadth-first searching (BFS).
 
 ## Features
 Android app coded in Kotlin. Activities, dialog fragments, and RecyclerViews. REST API calls using RetroFit. Shared Preferences. Custom view which draws each map to the screen. Interactive rooms. Clipboard access. Callback event listeners. Kotlin coroutines.
