@@ -3,31 +3,32 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/dialog_selection_layout"
+    android:id="@+id/dialog_combined_layout"
     android:layout_width="match_parent"
     android:layout_height="300dp"
-    android:background="@drawable/medieval"
+    android:background="@drawable/braid"
     android:backgroundTint="@color/colorForest"
     android:backgroundTintMode="src_atop"
     android:minWidth="380dp"
     android:minHeight="250dp">
 
     <TextView
-        android:id="@+id/dialog_selection_text_view_title"
+        android:id="@+id/dialog_combined_text_view_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="50dp"
         android:fontFamily="cursive"
         android:gravity="center"
-        android:text="Select the Item"
+        android:text="Select the Option"
+        android:textColor="@color/colorEbony"
         android:textSize="20sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/dialog_selection_recycler_view_container"
-        android:name="com.lambdaschool.cs_build_week_2.views.SelectionDialog"
+        android:id="@+id/dialog_combined_recycler_view_container"
+        android:name="com.lambdaschool.cs_build_week_2.dialogs.CombinedDialog"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_marginStart="120dp"
@@ -36,32 +37,15 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:backgroundTint="@color/colorForest"
         app:layoutManager="LinearLayoutManager"
-        app:layout_constraintBottom_toTopOf="@id/dialog_selection_button_cancel"
+        app:layout_constraintBottom_toTopOf="@id/dialog_combined_button_cancel"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/dialog_selection_text_view_title"
-        tools:context=".views.SelectionDialog"
-        tools:listitem="@layout/dialog_selection_element" />
+        app:layout_constraintTop_toBottomOf="@id/dialog_combined_text_view_title"
+        tools:context=".dialogs.CombinedDialog"
+        tools:listitem="@layout/dialog_combined_element" />
 
     <Button
-        android:id="@+id/dialog_selection_button_custom"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:alpha="0.8"
-        android:backgroundTint="@color/colorAmberFade"
-        android:fontFamily="cursive"
-        android:minWidth="0dp"
-        android:minHeight="0dp"
-        android:text="Custom"
-        android:textColor="@color/colorCloud"
-        android:textSize="10sp"
-        app:layout_constraintBottom_toTopOf="@id/dialog_selection_button_cancel"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/dialog_selection_recycler_view_container" />
-
-    <Button
-        android:id="@+id/dialog_selection_button_cancel"
+        android:id="@+id/dialog_combined_button_cancel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="120dp"
@@ -76,10 +60,10 @@
         android:textSize="10sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/dialog_selection_button_custom" />
+        app:layout_constraintTop_toBottomOf="@id/dialog_combined_recycler_view_container" />
 
     <Button
-        android:id="@+id/dialog_selection_button_confirm"
+        android:id="@+id/dialog_combined_button_confirm"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="120dp"
@@ -95,6 +79,6 @@
         android:textSize="10sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/dialog_selection_button_custom" />
+        app:layout_constraintTop_toBottomOf="@id/dialog_combined_recycler_view_container" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

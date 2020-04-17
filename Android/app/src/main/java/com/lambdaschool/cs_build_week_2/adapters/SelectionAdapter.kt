@@ -7,7 +7,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.lambdaschool.cs_build_week_2.R
-import kotlinx.android.synthetic.main.recycler_view_element.view.*
+import kotlinx.android.synthetic.main.dialog_selection_element.view.*
 
 class SelectionAdapter(private val itemList: ArrayList<String>, listener: OnRecyclerViewInteractionListener) :
     RecyclerView.Adapter<SelectionAdapter.ViewHolder>() {
@@ -16,7 +16,7 @@ class SelectionAdapter(private val itemList: ArrayList<String>, listener: OnRecy
     private val orviListener: OnRecyclerViewInteractionListener = listener
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view: View = LayoutInflater.from(parent.context).inflate(R.layout.recycler_view_element, parent, false)
+        val view: View = LayoutInflater.from(parent.context).inflate(R.layout.dialog_selection_element, parent, false)
         return ViewHolder(view, orviListener)
     }
 
@@ -43,7 +43,7 @@ class SelectionAdapter(private val itemList: ArrayList<String>, listener: OnRecy
     override fun getItemCount(): Int = itemList.size
 
     inner class ViewHolder(val view: View, listener: OnRecyclerViewInteractionListener) : RecyclerView.ViewHolder(view) {
-        val textViewItem: TextView = view.recycler_view_element_text_view_item
+        val textViewItem: TextView = view.dialog_selection_element_text_view
         val orvil: OnRecyclerViewInteractionListener = listener
         init {
             view.setOnClickListener {

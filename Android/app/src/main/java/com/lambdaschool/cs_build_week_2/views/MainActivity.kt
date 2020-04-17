@@ -4,7 +4,6 @@ import android.content.*
 import android.graphics.Color
 import android.os.Bundle
 import android.os.CountDownTimer
-import android.os.Handler
 import android.view.View
 import android.widget.ScrollView
 import androidx.appcompat.app.AppCompatActivity
@@ -12,11 +11,13 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.lambdaschool.cs_build_week_2.R
 import com.lambdaschool.cs_build_week_2.api.*
+import com.lambdaschool.cs_build_week_2.dialogs.CombinedDialog
 import com.lambdaschool.cs_build_week_2.models.*
 import com.lambdaschool.cs_build_week_2.utils.Mining
 import com.lambdaschool.cs_build_week_2.utils.SharedPrefs
 import com.lambdaschool.cs_build_week_2.utils.UserInteraction
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.internal.toHexString
 import retrofit2.Call
@@ -25,6 +26,7 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
+import java.lang.Runnable
 import java.lang.reflect.Type
 import java.util.*
 import java.util.concurrent.TimeUnit
@@ -33,12 +35,10 @@ import kotlin.collections.HashMap
 
 
 class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInteractionListener,
-    InputDialog.OnInputDialogInteractionListener {
+    InputDialog.OnInputDialogInteractionListener, CombinedDialog.OnCombinedDialogInteractionListener {
 
     companion object {
-        var traversalTimer: Timer? = null
-        val timerHandlerSpecific = Handler()
-        val timerHandlerUnexplored = Handler()
+        var automationJob: Job = Job()
         var cooldownTimer: CountDownTimer? = null
         var cooldownAmount: Double? = 0.0
         var automatedPath: ArrayList<Int?> = arrayListOf()
@@ -68,6 +68,10 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             if (!Companion::preferencesDark.isInitialized) {
                 preferencesDark = context.getSharedPreferences("DarkData", Context.MODE_PRIVATE)
             }
+        }
+
+        init {
+            automationJob.cancel()
         }
     }
 
@@ -100,8 +104,14 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         button_move_west.setOnClickListener { moveInDirection("w") }
         button_init.setOnClickListener { networkGetInit() }
         button_traverse.setOnClickListener {
-            moveToUnexploredAutomated(pauseInSeconds = 11)
-//            moveToSpecificRoomAutomated(traverseToRoom, pauseInSeconds = 6)
+            if (isInitDataDownloaded()) {
+                val traversalOptions: ArrayList<String> = arrayListOf("Search Unexplored", "Search Room: $traverseToRoom")
+                if (automationJob.isActive) {
+                    traversalOptions.add(0, "Halt Traversal")
+                }
+                val traversalList = traversalOptions
+                showCombinedDialog(traversalList, "Select the Traversal Type", R.color.colorRubyFade)
+            }
         }
         button_take.setOnClickListener {
             if (isInitDataDownloaded()) {
@@ -284,6 +294,17 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         inputDialog.arguments = bundle
         inputDialog.isCancelable = false
         inputDialog.show(supportFragmentManager, InputDialog.textTag)
+    }
+
+    private fun showCombinedDialog(list: ArrayList<String>, title: String, color: Int) {
+        val dialog: CombinedDialog = CombinedDialog()
+        val bundle: Bundle = Bundle()
+        bundle.putStringArrayList(CombinedDialog.listTag, list)
+        bundle.putString(CombinedDialog.titleTag, title)
+        bundle.putInt(CombinedDialog.colorTag, color)
+        dialog.arguments = bundle
+        dialog.isCancelable = false
+        dialog.show(supportFragmentManager, CombinedDialog.listTag)
     }
 
     override fun onSelectionDialogInteractionTake(item: String) {
@@ -1105,27 +1126,6 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             .build()
     }
 
-    private fun moveInDirection(direction: String) {
-        if (isInitDataDownloaded()) {
-            val nextRoom: String? = anticipateNextRoom(direction)
-            val moveWisely: MoveWisely = MoveWisely(direction, nextRoom)
-            val networkRunnable: Runnable = Runnable {
-                if (getCurrentRoomDetails().terrain?.toLowerCase(Locale.getDefault()) == "mountain")
-                    networkPostFly(moveWisely)
-                else
-                    networkPostMove(moveWisely)
-            }
-            val networkThread = Thread(networkRunnable)
-            networkThread.start()
-            networkThread.join()
-            text_room_info.text = responseRoomInfo
-            text_log.append("$responseMessage\n")
-            scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
-            UserInteraction.inform(applicationContext, responseMessage)
-            showCooldownTimer()
-        }
-    }
-
     private fun updateGraphDetails(responseBody: RoomDetails?) {
         currentRoomId = responseBody?.roomId ?: 0
         setDarkWorldStatus()
@@ -1229,6 +1229,14 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         return CellDetails(coordinatesSplit[0].toInt(), coordinatesSplit[1].toInt(), cellColor)
     }
 
+    private fun getCurrentRoomDetails(): RoomDetails {
+        return if (inDarkWorld) {
+            darkGraph[currentRoomId]?.get(0) as RoomDetails
+        } else {
+            roomsGraph[currentRoomId]?.get(0) as RoomDetails
+        }
+    }
+
     private fun showCooldownTimer() {
         cooldownTimer?.cancel()
         frame_cooldown.visibility = View.VISIBLE
@@ -1246,94 +1254,96 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
         cooldownTimer?.start()
     }
 
-    private fun runNextAutomatedStep(keepGoing: Boolean) {
-        if (keepGoing)
-            timerHandlerUnexplored.post(myRunnableUnexplored)
-        else
-            timerHandlerSpecific.post(myRunnableSpecific)
+    private fun moveInDirection(direction: String) {
+        if (isInitDataDownloaded()) {
+            val nextRoom: String? = anticipateNextRoom(direction)
+            val moveWisely: MoveWisely = MoveWisely(direction, nextRoom)
+            val networkRunnable: Runnable = Runnable {
+                if (getCurrentRoomDetails().terrain?.toLowerCase(Locale.getDefault()) == "mountain")
+                    networkPostFly(moveWisely)
+                else
+                    networkPostMove(moveWisely)
+            }
+            val networkThread = Thread(networkRunnable)
+            networkThread.start()
+            networkThread.join()
+            text_room_info.text = responseRoomInfo
+            text_log.append("$responseMessage\n")
+            scroll_log.fullScroll(ScrollView.FOCUS_DOWN)
+            UserInteraction.inform(applicationContext, responseMessage)
+            showCooldownTimer()
+        }
     }
 
-    private val myRunnableUnexplored = Runnable {
-        if (automatedPath.isNotEmpty()) {
-            var direction: String? = getDirectionForRoom(automatedPath.removeAt(0))
-            if (direction == null) {
-                direction = getCurrentRoomDetails().exits?.random()
+    private fun automatedTraversal(destinationRoomId: Int? = null) {
+        if (!isInitDataDownloaded()) {
+            return
+        } else if (destinationRoomId == currentRoomId) {
+            UserInteraction.askQuestion(this, "Current Room", "You are already at Room #$destinationRoomId!", "Okay", null)
+            return
+        }
+        if (automationJob.isActive) {
+            CoroutineScope(Dispatchers.IO).launch {
+                automationJob.cancelAndJoin()
             }
-            when (direction) {
-                "n" -> button_move_north.performClick()
-                "s" -> button_move_south.performClick()
-                "e" -> button_move_east.performClick()
-                "w" -> button_move_west.performClick()
-            }
+            UserInteraction.inform(this, "Automated 'Traverse' has been halted...")
         } else {
-            UserInteraction.inform(this, "There is nowhere to go...")
-            traversalTimer?.cancel()
-            traversalTimer = null
-            return@Runnable
-        }
-        if (automatedPath.isEmpty()) {
-            traversalTimer?.cancel()
-            traversalTimer = null
-            moveToUnexploredAutomated()
+            automationJob = CoroutineScope(Dispatchers.IO).launch {
+                while (isActive) {
+                    automatedTraversalWork(destinationRoomId)
+                }
+            }
         }
     }
 
-    private val myRunnableSpecific = Runnable {
-        val destinationRoom: Int?
-        if (automatedPath.isNotEmpty()) {
-            destinationRoom = automatedPath.last()
-            val direction: String? = getDirectionForRoom(automatedPath.removeAt(0))
-            if (direction == null) {
-                UserInteraction.askQuestion(
-                    this, "Room Not Found", "Problem encountered traversing to room #$destinationRoom!", "Okay", null
-                )
-                traversalTimer?.cancel()
+    private suspend fun automatedTraversalWork(destinationRoomId: Int? = null) {
+        automatedPath = bfs(destinationRoomId)
+        if (automatedPath.isEmpty()) {
+            var unknownConditionMessage: String = ""
+            var unknownConditionTitle: String = ""
+            if (destinationRoomId != null) {
+                unknownConditionMessage = "Unknown snafu traversing to room #$destinationRoomId!"
+                unknownConditionTitle = "Room Not Found"
             } else {
-                when (direction) {
-                    "n" -> button_move_north.performClick()
-                    "s" -> button_move_south.performClick()
-                    "e" -> button_move_east.performClick()
-                    "w" -> button_move_west.performClick()
-                }
+                unknownConditionMessage = "Cannot 'Traverse' - there is nowhere to go..."
+                unknownConditionTitle = "Traversal Halted"
+            }
+            withContext(Dispatchers.Main) {
+                UserInteraction.askQuestion(this@MainActivity, unknownConditionTitle, unknownConditionMessage, "Okay", null)
+                this.cancel()
             }
         } else {
-            UserInteraction.inform(this, "I'm lost...")
-            traversalTimer?.cancel()
-            traversalTimer = null
-            return@Runnable
-        }
-        if (automatedPath.isEmpty()) {
-            traversalTimer?.cancel()
-        }
-        val exploredWisely: Boolean = getCurrentRoomDetails().messages?.last()?.contains("Wise") ?: false
-        if ((destinationRoom == currentRoomId) || (destinationRoom == null && !exploredWisely)) {
-            UserInteraction.askQuestion(this, "Room Found", "Room #$destinationRoom has been found!", "Okay", null)
-        }
-    }
-
-    private fun getCurrentRoomDetails(): RoomDetails {
-        return if (inDarkWorld) {
-            darkGraph[currentRoomId]?.get(0) as RoomDetails
-        } else {
-            roomsGraph[currentRoomId]?.get(0) as RoomDetails
-        }
-    }
-
-    private fun moveToUnexploredAutomated(pauseInSeconds: Int = 16) {
-        if (traversalTimer == null) {
-            if (!isInitDataDownloaded()) return
-            automatedPath = bfs(null)
-            traversalTimer = Timer()
-            traversalTimer?.schedule(object : TimerTask() {
-                override fun run() {
-                    runNextAutomatedStep(true)
+            while (automatedPath.isNotEmpty()) {
+                var direction: String? = getDirectionForRoom(automatedPath.removeAt(0))
+                if (direction == null) {
+                    direction = getCurrentRoomDetails().exits?.random()
                 }
-            }, pauseInSeconds * 1000L, pauseInSeconds * 1000L)
-        } else {
-            traversalTimer?.cancel()
-            traversalTimer = null
-            UserInteraction.inform(this, "'Traverse' option has been halted...")
+                withContext(Dispatchers.Main) {
+                    when (direction) {
+                        "n" -> button_move_north.performClick()
+                        "s" -> button_move_south.performClick()
+                        "e" -> button_move_east.performClick()
+                        "w" -> button_move_west.performClick()
+                        else -> UserInteraction.inform(applicationContext, "Direction '$direction' couldn't be found...")
+                    }
+                }
+                if (destinationRoomId != null) {
+                    val exploredWisely: Boolean = getCurrentRoomDetails().messages?.last()?.contains("wise", true) ?: false
+                    if ((destinationRoomId == currentRoomId) || !exploredWisely) {
+                        val foundMessage: String = "Room #$destinationRoomId has been found!"
+                        withContext(Dispatchers.Main) {
+                            UserInteraction.askQuestion(this@MainActivity, "Room Found", foundMessage, "Okay", null)
+                            this.cancel()
+                        }
+                    }
+                }
+                delay(cooldownAmount?.times(1000L)?.toLong() ?: 1000L)
+            }
         }
+    }
+
+    override fun onCombinedDialogInteractionAutomation(destinationRoomId: Int?) {
+        automatedTraversal(destinationRoomId)
     }
 
     private fun isInitDataDownloaded(): Boolean {
@@ -1362,28 +1372,6 @@ class MainActivity : AppCompatActivity(), SelectionDialog.OnSelectionDialogInter
             return false
         }
         return true
-    }
-
-    private fun moveToSpecificRoomAutomated(roomId: Int?, pauseInSeconds: Int = 16) {
-        if (traversalTimer == null) {
-            if (!isInitDataDownloaded()) {
-                return
-            } else if (roomId == currentRoomId) {
-                UserInteraction.askQuestion(this, "Room Is Here", "You are already at Room #${roomId}!", "Okay", null)
-                return
-            }
-            automatedPath = bfs(roomId)
-            traversalTimer = Timer()
-            traversalTimer?.schedule(object : TimerTask() {
-                override fun run() {
-                    runNextAutomatedStep(false)
-                }
-            }, 0, pauseInSeconds * 1000L)
-        } else {
-            traversalTimer?.cancel()
-            traversalTimer = null
-            UserInteraction.inform(this, "'Traverse' command has been halted...")
-        }
     }
 
     private fun bfs(destinationRoom: Int?): ArrayList<Int?> {
