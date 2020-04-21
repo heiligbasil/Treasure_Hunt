@@ -1,4 +1,4 @@
-# LMUD Treasure Hunt
+# Treasure Hunt
 What brave adventurer musters the moxy to traverse the labyrinth!
 
 ## Description
